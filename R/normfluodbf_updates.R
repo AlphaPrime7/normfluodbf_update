@@ -3,6 +3,15 @@ lipo_dat <- read.table(file='C:/Users/GrandProf/Downloads/Repos_4cleanup/Reposit
 lipo_dat2 <- read.table(file='C:/Users/GrandProf/Downloads/Repos_4cleanup/Repositories_AP7/In_Progress_Inactive/Liposome-Flux-Assays_R/Input/dat/Navab.DAT')
 lipo_dat <- as.data.frame(lipo_dat)
 
+#UNIQUE IDENTIFIER
+unique_identifier <- function(df){
+  for(i in 1:nrow(df)){
+    x <- 0
+    x <- x + i
+    df$unique_id[i] <- x
+  }
+  return(df)
+}
 
 #FUNCTION 1- Pattern recognized
 na_standard_dat <- function(df){
@@ -15,6 +24,7 @@ na_standard_dat <- function(df){
   return(df)
 }
 na_dat <- na_standard_dat(lipo_dat)
+nona_dat <- na.omit(na_dat)
 
 #FUNCTION 2-Adding NAs to special characters
 clean_odd_dat <- function(df){
@@ -48,13 +58,18 @@ lipo2_test <- clean_odd_dat(lipo_dat2)
 
 #JUST SOME HARDCODE TESTING, GOING INTO THE FUNCTIONS AND PACKAGE SHORTLY
 
-col_conv <- c(colnames(test_clean))
-col_conv
+
 
 #lipo_dat
-test_clean_updated <- test_clean
-test_clean_updated[ , col_conv] <- lapply(test_clean_updated[ , col_conv],  # Convert data
+col_conv <- c(colnames(nona_dat))
+col_conv
+nona_updated <- nona_dat
+nona_updated[ , col_conv] <- lapply(nona_updated[ , col_conv],  # Convert data
                                        function(x){ as.numeric(as.character(gsub(",", "", x))) })
+dat_cycles <- unique_identifier(nona_updated)
+sub_samples <- dat_cycles[c(1:40),]
+plot(sub_samples$unique_id, sub_samples$V1)
+plot(sub_samples$unique_id, sub_samples$V2)
 
 #lipo_dat2
 col_lipo2 <- c(colnames(lipo_dat2))

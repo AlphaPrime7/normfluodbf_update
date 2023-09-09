@@ -1,7 +1,7 @@
-#better to read the dat using
-lipo_dat <- read.table(file='C:/Users/GrandProf/Downloads/Repos_4cleanup/Repositories_AP7/In_Progress_Inactive/Liposome-Flux-Assays_R/Input/dat/Navab_LFA_Acma_var.dat')
-lipo_dat2 <- read.table(file='C:/Users/GrandProf/Downloads/Repos_4cleanup/Repositories_AP7/In_Progress_Inactive/Liposome-Flux-Assays_R/Input/dat/Navab.DAT')
-lipo_dat <- as.data.frame(lipo_dat)
+#use renv file for better code
+usethis::edit_r_environ() #store wds for files
+lipo_dat <- read.table()
+lipo_dat2 <- read.table()
 
 #UNIQUE IDENTIFIER
 unique_identifier <- function(df){
@@ -26,7 +26,7 @@ na_standard_dat <- function(df){
 na_dat <- na_standard_dat(lipo_dat)
 nona_dat <- na.omit(na_dat)
 
-#FUNCTION 2-Adding NAs to special characters
+#FUNCTION 2-Clean dat files no matter the setup
 clean_odd_dat <- function(df){
   library(dplyr)
   special_chars <- c('-,','-' )
@@ -57,8 +57,6 @@ lipo2_test <- clean_odd_dat(lipo_dat2)
 
 
 #JUST SOME HARDCODE TESTING, GOING INTO THE FUNCTIONS AND PACKAGE SHORTLY
-
-
 
 #lipo_dat
 col_conv <- c(colnames(nona_dat))

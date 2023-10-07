@@ -1,7 +1,7 @@
 #use renv file for better code
 usethis::edit_r_environ() #store wds for files
-lipo_dat <- read.table()
-lipo_dat2 <- read.table()
+lipo_dat <- read.table(Sys.getenv('first_dat'))
+lipo_dat2 <- read.table(Sys.getenv('scnd_dat'))
 
 #UNIQUE IDENTIFIER
 unique_identifier <- function(df){

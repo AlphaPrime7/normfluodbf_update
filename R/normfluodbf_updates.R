@@ -1,19 +1,11 @@
 #use renv file for better code
 usethis::edit_r_environ() #store wds for files
-lipo_dat <- read.table(Sys.getenv('first_dat'))
-lipo_dat2 <- read.table(Sys.getenv('scnd_dat'))
+dat = Sys.getenv('first_dat')
+dat2 = Sys.getenv('scnd_dat')
+lipo_dat <- read.table(dat)
+lipo_dat2 <- read.table(dat2)
 
-#UNIQUE IDENTIFIER
-unique_identifier <- function(df){
-  for(i in 1:nrow(df)){
-    x <- 0
-    x <- x + i
-    df$unique_id[i] <- x
-  }
-  return(df)
-}
 
-#FUNCTION 1- Pattern recognized
 na_standard_dat <- function(df){
   for (i in (4 * (1:(nrow(df)/4)))){
     k <- seq(4)
@@ -21,10 +13,11 @@ na_standard_dat <- function(df){
     if(i %in% skip_values) next
     df[c(k+i,i),] <- NA
   }
+  df <- na.omit(df)
   return(df)
 }
-na_dat <- na_standard_dat(lipo_dat)
-nona_dat <- na.omit(na_dat)
+nona_dat <- na_standard_dat(lipo_dat)
+
 
 #FUNCTION 2-Clean dat files no matter the setup
 clean_odd_dat <- function(df){
@@ -52,58 +45,26 @@ clean_odd_dat <- function(df){
   return(comma_df)
 }
 
+
+
 lipo1_test <- clean_odd_dat(lipo_dat)
 lipo2_test <- clean_odd_dat(lipo_dat2)
 
+#comma cleaner
+commaclean_test <- comma_cleaner(lipo2_test)
+commaclean_test <- as.data.frame(commaclean_test)
 
-#JUST SOME HARDCODE TESTING, GOING INTO THE FUNCTIONS AND PACKAGE SHORTLY
+#PROTOTYPE
 
-#lipo_dat
-col_conv <- c(colnames(nona_dat))
-col_conv
-nona_updated <- nona_dat
-nona_updated[ , col_conv] <- lapply(nona_updated[ , col_conv],  # Convert data
-                                       function(x){ as.numeric(as.character(gsub(",", "", x))) })
+#original adjusting k to account for the position of the increment statement
 
-dat_cycles <- unique_identifier(nona_updated)
+resample_datv2 <- function(df, tnp, cycles){
 
-#SUBSAMPLES NOT WORKING BECAUSE DATA IS JANKY
-sub_samples <- dat_cycles[c(1:40),]
-plot(sub_samples$unique_id, sub_samples$V1)
-plot(sub_samples$unique_id, sub_samples$V2)
-
-#lipo_dat2
-col_lipo2 <- c(colnames(lipo_dat2))
-lipo2_updated <- lipo_dat2
-lipo2_updated[ , col_conv] <- lapply(lipo2_updated[ , col_conv],  # Convert data
-                                          function(x){ as.numeric(as.character(gsub(",", "", x))) })
-lipo2_updated[, c(1:ncol(lipo2_updated))] <- sapply(lipo2_updated[, c(1:ncol(lipo2_updated))], as.numeric)
-is.numeric(lipo2_updated)
-lipo2_clean <- na.omit(lipo2_updated)
-
-
-## REARRANGE THE DATA INTO A USABLE FORMAT, NO COMPLICATED MOVES
-## file = dat_cycles IS THE RIGHT FILE
-
-dat_cycles <- as.data.frame(dat_cycles)
-col_1 <- dat_cycles[,1]
-col_1 <- as.data.frame(col_1)
-
-
-#CLOSE TO THE UPDATE-# of cycles,# of samples
-col_1c <- data.frame()
-for(i in col_1){
-  col_1c <- rbind(col_1c,i)
-}
-
-resample_dat_close <- function(df, tnp, cycles){
-
-  sample_size <- c(1:cycles)
-  type_size <- c(1:tnp) #tnp is the sample types (3 for all, 2 for tp-tn-np if fixing something)
+  type_size <- c(1:tnp)
   k <- c((1-tnp):(tnp-tnp)) # 1:3, 4:7, 115:117, 118:120 kth element < 120 based on standard setup
 
   resulting_df <- data.frame()
-  for (i in 1:(nrow(df)/3)){
+  for (i in 1:(nrow(df)/tnp)){
 
     increment = tnp #(tnp=3 for 3 samples; tnp =2 for 2 samples)
     k <- k + increment
@@ -119,52 +80,127 @@ resample_dat_close <- function(df, tnp, cycles){
   suppressWarnings(return(resulting_df))
 }
 
-trial1 <- resample_dat_close(col_1, tnp = 3, cycles = 40)
+trial1 <- resample_datv2(col1_80, tnp = 2, cycles = 40)
+trial2 <- resample_datv2(col1_80, tnp = 2, cycles = 40)
 
+#remix-moving the increment statement
+resample_dat <- function(df, tnp, cycles, samples_per_tnp){
 
-#tnp=testnegpos, cols = vector c(123)-match tnp, n = number of samples per group(tnp), cycles=chosen samples (40),
-resample_redo <- function(df, cols, tnp, n, cycles){
+  type_size <- c(1:tnp)
+  k <- c(1:tnp)
 
   resulting_df <- data.frame()
+  for (i in 1:(nrow(df)/tnp)){
 
-  for (i in 1:(ncol(col_1c)/3)){
-    for (j in tnp * seq(cycles/tnp)){
+    colnames(resulting_df) = NULL
+    insert_row = df[k,]
+    colnames(insert_row) = NULL
 
-      colnames(resulting_df) = NULL
-      insert_row = col_1c[,cols]
-      print(insert_row)
-      colnames(insert_row) = NULL
-      resulting_df[i,cols] <- rbind(resulting_df, insert_row)
-      print(resulting_df)
+    resulting_df[i,type_size] <- rbind(insert_row, resulting_df)
 
-      increment = 3
-      i = i + increment
-      j = j + increment
+    increment = tnp
+    k <- k + increment
 
-      }
+
   }
-  return(resulting_df)
+  suppressWarnings(return(resulting_df))
 }
 
-resample_redo(col_1c, c(1:3), 3, 12, 40)
+trial1r <- resample_dat(col1_80, tnp = 2, cycles = 40, samples_per_tnp = 12)
+trial2r <- resample_dat(col1_80, tnp = 2, cycles = 40, samples_per_tnp = 12)
 
-#BETTER TO GO FROM COLUMN TO ROWS INSTEAD
-#3 in the loop is the # of sample types (pos,neg vs test)
-#i can deduce your number of cycles from the setup and type of samples (advice that odd number samples are good for algos in this case)
-# 39 cycles is easier to code than 40 cycles at least so far, still working on it
-13
-46
-79
-1012
-1315
-1618
-1921
-2224
-2527
-2830
-3133
-3436
-3740
-.
-115117
-118120
+
+#SCALE UP NOW
+
+#BUILD ON RESAMPLE_DAT-ITS THERE JUST FINAL TOUCHES OR NORMFLUODAT
+resample_dat_scale <- function(df, tnp, cycles){
+  library(data.table)
+
+  col_list <- c()
+  for(i in 1:ncol(df)){
+    n <- "a"
+    col_list <- c(col_list,assign(paste0(n, i), as.data.frame(df[,i])) )
+  }
+
+  j_vect <- c()
+  for(j in col_list){
+    j <- as.data.frame(j)
+    j_resampled <- resample_dat(j, tnp = tnp, cycles = cycles)
+    j_dfs <- as.data.frame(j_resampled)
+    j_vect <- c(j_vect, j_dfs)
+  }
+
+  big_data = do.call(rbind, j_vect)
+  big_data = as.data.frame(big_data)
+  big_data_t = transpose(l=big_data)
+
+  suppressWarnings(return(big_data_t))
+}
+
+trial1_scale <- resample_dat_scale(dat_nocycles, tnp = 3, cycles = 40)
+
+#NAME COLUMNS-FINAL MOMENTS
+n <- c('A','B','C')
+
+dat_col_names <- function(df, rows_used = NULL, cols_used= NULL){
+  col_names <- c()
+  if(is.null(cols_used)){
+    for(j in n){
+      for(i in 1:ncol(trial1_scale)){
+        col_names <- c(col_names, paste0(n,i))
+      }
+    }
+    return(col_names[1:ncol(trial1_scale)])
+  } else {
+    for(j in n){
+      for(i in cols_used){
+        col_names <- c(col_names, paste0(n,i))
+      }
+    }
+    return(col_names[1:(length(cols_used)*length(n))])
+  }
+}
+
+
+trial1_scale <- as.data.frame(lapply(trial1_scale[1:ncol(trial1_scale)], min_max_norm))
+
+sample_col_names <- dat_col_names(trial1_scale, n)
+sample_col_names_spec <- dat_col_names(trial1_scale, n, c(2,4))
+sample_col_names
+sample_col_names_spec
+
+colnames(trial1_scale) <- sample_col_names
+
+
+#NORMALIZE
+min_max_norm <- function(x) {
+  (x - min(x)) / (max(x) - min(x))
+}
+
+#UNIQUE IDENTIFIER
+unique_identifier <- function(df){
+  for(i in 1:nrow(df)){
+    x <- 0
+    x <- x + i
+    df$unique_id[i] <- x
+  }
+  return(df)
+}
+
+
+#PLOT
+#shinyapp version 1 ).DATA[[]] VERSION
+GG_plot_triplets <- function(df, x, y_list, xlim, ylim){
+  ggplot(df, aes(x=.data[[x[1]]])) +
+    geom_point(aes(y=.data[[y_list[1]]]), size=3, color="blue") +
+    geom_point(aes(y=.data[[y_list[2]]]), size=3, color="red") +
+    geom_point(aes(y=.data[[y_list[3]]]), size=3, color="green") +
+    geom_line(aes(y=.data[[y_list[1]]], color="Test"), size = 0.8) +
+    geom_line(aes(y=.data[[y_list[2]]], color="Negative Control"),size = 0.8) +
+    geom_line(aes(y=.data[[y_list[3]]], color="Positivetive Control"), size = 0.8) +
+    dark_mode()+  coord_cartesian(xlim = xlim) +  coord_cartesian(ylim=ylim) +
+    labs(title = 'NavAb Liposome Flux Assay',
+         x = 'Cycle_no', y='Normalized Fluorescence', color='Sample Type')
+}
+
+GG_plot_triplets(wrangled_dbf2,x=xvar,y_list=test,xlim=xl,ylim=yl)

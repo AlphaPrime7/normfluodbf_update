@@ -121,7 +121,6 @@ resample_dat_scale <- function(df, tnp, cycles){
 test_scale <- resample_dat_scale(test, tnp = 3, cycles = 40)
 
 resample_dat_alt_scale <- function(df, tnp, cycles, samples_per_tnp=NULL){
-  library(tibble)
 
   type_size <- c(1:ncol(df)) #k is now nseq(same kinda thing)
 
@@ -140,16 +139,17 @@ resample_dat_alt_scale <- function(df, tnp, cycles, samples_per_tnp=NULL){
       nseq <- nseq + increment_n
 
     }
-    final_df <- cbind(sample_df, final_df)
+    final_df <- cbind(final_df, sample_df)
     final_df <- final_df[ , colSums(is.na(final_df))==0]
     colnames(final_df) <- NULL
+    rownames(final_df) <- c(1:cycles)
     final_df <- as.data.frame(final_df)
 
   }
   #return(sample_df)
   return(final_df)
 }
-resamp_demo <- resample_dat_alt_scale(test1,3,40)
+resamp_demo <- resample_dat_alt_scale(test,3,40)
 
 # 6.
 

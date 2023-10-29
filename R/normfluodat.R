@@ -354,9 +354,6 @@ gg_plot_triplets <- function(df, x, y_list, xlim, ylim){
 
 gg_plot_triplets(normalized_fluo_dat,x=xvar,y_list=yvars,xlim=xl,ylim=yl)
 
-
-
-
 # 'Cycle_no'
 # 'Normalized Fluorescence'
 # 'NavAb Liposome Flux Assay'

@@ -120,6 +120,38 @@ resample_dat_scale <- function(df, tnp, cycles){
 
 test_scale <- resample_dat_scale(test, tnp = 3, cycles = 40)
 
+resample_dat_scale <- function(df, tnp, cycles){
+
+  type_size <- c(1:tnp) #k is now nseq(same kinda thing)
+
+
+  sample_df <- data.frame()
+  final_df <- matrix(ncol = cycles)
+
+  for(i in 1:ncol(df)){
+    nseq <- c(1:tnp)
+
+    for (j in 1:(nrow(df)/tnp)){
+
+      insert_row = df[nseq,i]
+      sample_df[j,type_size] <- rbind(insert_row, sample_df)
+      increment_n = tnp
+      nseq <- nseq + increment_n
+
+    }
+    final_df <- cbind(final_df, sample_df)
+    final_df <- final_df[ , colSums(is.na(final_df))==0]
+    colnames(final_df) <- NULL
+    rownames(final_df) <- c(1:cycles)
+    final_df <- as.data.frame(final_df)
+
+  }
+  #return(sample_df)
+  return(final_df)
+}
+
+test_scale <- resample_dat_scale(test, tnp = 3, cycles = 40)
+
 resample_dat_alt_scale <- function(df, tnp, cycles, samples_per_tnp=NULL){
 
   type_size <- c(1:ncol(df)) #k is now nseq(same kinda thing)

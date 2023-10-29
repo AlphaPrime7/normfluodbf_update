@@ -1,13 +1,28 @@
-# Normfluodbf Update
+---
+title: "NFD MINOR UPDATE"
+output: html_notebook
+---
 
+# PACKAGE DOC
+
+- It must be mentioned that this is my first major project and it solves a serious problem.
+- On a lighter side, I need to write a gaming program next to begin to relax my mind on just making cool fun stuff.
+
+## Reading Files In
+
+```{r}
+usethis::edit_r_environ()
 dat = Sys.getenv('first_dat')
-dat = Sys.getenv('third_dat')
+dat2 = Sys.getenv('scnd_dat')
+dat3 = Sys.getenv('third_dat')
 lipo_dat <- read.table(dat)
+lipo_dat2 <- read.table(dat2)
+lipo_dat3 <- read.table(dat3)
+```
 
-#SUBORDINATE FUNCTIONS
+## First Function (Clean Normal DATS)
 
-# 1. Standalone sub function for dat files with an idied sequence but this is an anomaly so the function for nonseqdats is the only one used here
-
+```{r}
 clean_evendat <- function(df){
   for (i in (4 * (1:(nrow(df)/4)))){
     k <- seq(4)
@@ -19,9 +34,12 @@ clean_evendat <- function(df){
   return(df)
 }
 
-# 2. Clean odd dats (PRIME)
+clean_evendat(lipo_dat)
+```
 
-#dependency
+## Second Function (Clean Abnormal DATS)
+
+```{r}
 comma_cleaner <- function(comma_df){
   cols_to_becleaned <- c(colnames(comma_df))
   comma_df[ , cols_to_becleaned] <- lapply(comma_df[ , cols_to_becleaned],  # Convert data
@@ -29,8 +47,13 @@ comma_cleaner <- function(comma_df){
   return(as.data.frame(comma_df))
 
 }
+```
 
+## Third Function (Clean Abnormal DATS)
+
+```{r}
 clean_odddat <- function(df){
+  library(dplyr)
   special_chars <- c('-,','-' )
   for (i in 1:nrow(df)){
     for (j in 1:ncol(df)){
@@ -48,10 +71,12 @@ clean_odddat <- function(df){
   return(nocomma_df)
 }
 
-test <- clean_odddat(lipo_dat)
+wrangled_dat <- clean_odddat(lipo_dat)
+```
 
-# 3.
+## Fourth Function (Clean abnormal DATS)
 
+```{r}
 clean_odd_cc <- function(df){
 
   df <- comma_cleaner(df)
@@ -61,11 +86,12 @@ clean_odd_cc <- function(df){
 
 }
 
-test1 <- clean_odd_cc(lipo_dat)
+wrangled_dat <- clean_odddat(lipo_dat)
+```
 
+## Fifth Function (Resampling samples)
 
-# 4.
-
+```{r}
 resample_dat <- function(df, tnp, cycles){
 
   type_size <- c(1:tnp)
@@ -87,9 +113,11 @@ resample_dat <- function(df, tnp, cycles){
   }
   return(resulting_df)
 }
+```
 
-# 5.
+## Sixth Function (Resampling samples scaled)
 
+```{r}
 resample_dat_scale <- function(df, tnp, cycles){
   library(data.table)
   library(dplyr)
@@ -150,9 +178,11 @@ resample_dat_alt_scale <- function(df, tnp, cycles, samples_per_tnp=NULL){
   return(final_df)
 }
 resamp_demo <- resample_dat_alt_scale(test1,3,40)
+```
 
-# 6.
+## Sixth Function (Naming attributes)
 
+```{r}
 dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
 
   if(is.null(rows_used)){
@@ -243,12 +273,12 @@ dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_spec
 
   }
 }
+```
 
-check_dtc <- dat_col_names_prime(test, c('A','B','C'),read_direction = 'horizontal')
-check_dtc
 
-# 7.
+## Seventh Function (Fluor threshold check)
 
+```{r}
 check_max_fluor <- function(clean_df){
   library(emojifont)
   load.emojifont(font = "EmojiOne.ttf")
@@ -263,25 +293,78 @@ check_max_fluor <- function(clean_df){
   }
 }
 check_max_fluor(trial1_scale)
+```
 
-# 8.
+## Eight Function (Normalizer)
 
+```{r}
 min_max_norm <- function(x) {
   (x - min(x)) / (max(x) - min(x))
 }
+```
 
-# 9. Unique_identifier
+## Ninth Function (Unique identifier cycle No)
 
+```{r}
 unique_identifier <- function(df){
   for(i in 1:nrow(df)){
     x <- 0
     x <- x + i
-    df$Cycle_No[i] <- x
+    df$unique_id[i] <- x
   }
   return(df)
 }
+```
 
-# 10. PARENT
+## Tenth Function (Normfluodat)
+
+```{r}
+n = c('A','B','C')
+
+normfluodat <- function(dat, tnp, cycles, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
+
+  library(data.table)
+
+  df <- read.table(dat) #dat becomes df
+  df <- clean_odddat(df)
+  df <- comma_cleaner(df)
+  df <- as.data.frame(df)
+
+  col_list <- c()
+  for(i in 1:ncol(df)){
+    n <- "a"
+    col_list <- c(col_list,assign(paste0(n, i), as.data.frame(df[,i])) )
+  }
+
+  j_vect <- c()
+  for(j in col_list){
+    j <- as.data.frame(j)
+    j_resampled <- resample_dat(j, tnp = tnp, cycles = cycles)
+    j_dfs <- as.data.frame(j_resampled)
+    j_vect <- c(j_vect, j_dfs)
+  }
+
+  cleaned_dat = do.call(rbind, j_vect)
+  cleaned_dat = as.data.frame(cleaned_dat)
+  cleaned_dat_t = transpose(l=cleaned_dat)
+
+  #normalize
+  cleaned_dat_t <- as.data.frame(lapply(cleaned_dat_t[1:ncol(cleaned_dat_t)], min_max_norm))
+
+  #name the columns
+  ru = rows_used
+  cu = cols_used
+  usl = user_specific_labels
+  dr = read_direction
+  sample_col_names <- dat_col_names_prime(cleaned_dat_t, ru, cu, usl, dr)
+  colnames(cleaned_dat_t) <- sample_col_names
+
+  #add unique_id
+  cleaned_dat_t <-unique_identifier(cleaned_dat_t)
+
+  return(cleaned_dat_t)
+}
+#a look at the logic of the failing normfluodat. NA omit is ran too early presenting the issue of truncating samples earlier than expected when the user does not load wells in sequence. Given this really happens when using the bad clean_odddat function.
 
 normfluodat <- function(dat, tnp, cycles, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
 
@@ -326,102 +409,9 @@ normfluodat <- function(dat, tnp, cycles, rows_used = NULL, cols_used= NULL, use
 
   return(cleaned_dat_t)
 }
-normalized_fluo_dat <- normfluodat(dat, tnp = 3, cycles = 40, n, read_direction = 'horizontal')
 
-# 11.
-
-yvars <- c("A1","B1","C1")
-xvar <- c("Cycle_No")
-color <- c("Test","Negative Control","Positive Control")
-xl <- c(0,40)
-yl <- c(0,1)
-#shinyapp version 1 ).DATA[[]] VERSION
-library(ggplot2)
-library(ggthemes)
-library(ggdark)
-gg_plot_triplets <- function(df, x, y_list, xlim, ylim){
-  ggplot(df, aes(x=.data[[x[1]]])) +
-    geom_point(aes(y=.data[[y_list[1]]]), size=3, color="blue") +
-    geom_point(aes(y=.data[[y_list[2]]]), size=3, color="red") +
-    geom_point(aes(y=.data[[y_list[3]]]), size=3, color="green") +
-    geom_line(aes(y=.data[[y_list[1]]], color="Test"), size = 0.8) +
-    geom_line(aes(y=.data[[y_list[2]]], color="Negative Control"),size = 0.8) +
-    geom_line(aes(y=.data[[y_list[3]]], color="Positivetive Control"), size = 0.8) +
-    dark_mode()+  coord_cartesian(xlim = xlim) +  coord_cartesian(ylim=ylim) +
-    labs(title = 'NavAb Liposome Flux Assay',
-         x = 'Cycle_no', y='Normalized Fluorescence', color='Sample Type')
-}
-
-gg_plot_triplets(normalized_fluo_dat,x=xvar,y_list=yvars,xlim=xl,ylim=yl)
+```
 
 
 
 
-# 'Cycle_no'
-# 'Normalized Fluorescence'
-# 'NavAb Liposome Flux Assay'
-library(ggplot2)
-gg_plot_triplets <- function(df, x=NULL, y_list=NULL, xlim, ylim){
-
-  if(is.null(x) && is.null(y_list)){
-    print('Enter the X-variable usually the cycle number')
-    x_var = scan(what=character(), n=1)
-
-    print('Enter the test sample')
-    test = scan(what=character(), n=1)
-
-    print('Enter the negative control')
-    nc = scan(what=character(), n=1)
-
-    print('Enter the positive control')
-    pc = scan(what=character(), n=1)
-
-    print('Enter the x-label')
-    x_lab = scan(what=character(), n=1)
-    print('Enter the y-label')
-    y_lab = scan(what=character(), n=1)
-    print('Enter the plot title')
-    titlef = scan(what=character(), n=1)
-
-    ggplot(df, aes(x=.data[[x_var]])) +
-      geom_point(aes(y=.data[[test]]), size=3, color="blue") +
-      geom_point(aes(y=.data[[nc]]), size=3, color="red") +
-      geom_point(aes(y=.data[[pc]]), size=3, color="green") +
-      geom_line(aes(y=.data[[test]], color="Test"), size = 0.8) +
-      geom_line(aes(y=.data[[nc]], color="Negative Control"),size = 0.8) +
-      geom_line(aes(y=.data[[pc]], color="Positivetive Control"), size = 0.8) +
-      coord_cartesian(xlim = xlim) +  coord_cartesian(ylim=ylim) +
-      labs(title = titlef,
-           x = x_lab , y= y_lab, color='Sample Type (TNP)')
-  } else{
-    print('Enter the x-label')
-    x_lab = scan(what=character(), n=1)
-    print('Enter the y-label')
-    y_lab = scan(what=character(), n=1)
-    print('Enter the plot title')
-    titlef = scan(what=character(), n=1)
-
-    ggplot(df, aes(x=.data[[x[1]]])) +
-      geom_point(aes(y=.data[[y_list[1]]]), size=3, color="blue") +
-      geom_point(aes(y=.data[[y_list[2]]]), size=3, color="red") +
-      geom_point(aes(y=.data[[y_list[3]]]), size=3, color="green") +
-      geom_line(aes(y=.data[[y_list[1]]], color="Test"), size = 0.8) +
-      geom_line(aes(y=.data[[y_list[2]]], color="Negative Control"),size = 0.8) +
-      geom_line(aes(y=.data[[y_list[3]]], color="Positivetive Control"), size = 0.8) +
-      coord_cartesian(xlim = xlim) +  coord_cartesian(ylim=ylim) +
-      labs(title = titlef,
-           x = x_lab , y= y_lab, color='Sample Type (TNP)')
-
-  }
-
-}
-
-yvars <- c("logA1","logB1","logC1")
-yvars <- c("A1","B1","C1")
-xvar <- c("Cycle_No")
-color <- c("Test","Negative Control","Positive Control")
-xl <- c(0,40)
-yl <- c(0,1)
-yl_log <- c(-2,0)
-gg_plot_triplets(trial1_scale,x=xvar,y_list=yvars,xlim=xl,ylim=yl)
-gg_plot_triplets(trial1_scale,xlim=xl,ylim=yl)

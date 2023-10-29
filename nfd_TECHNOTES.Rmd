@@ -1,0 +1,1103 @@
+---
+title: "NFD MINOR UPDATE"
+output: html_notebook
+---
+
+# GENERAL FLOW
+
+- It must be mentioned that this is my first major project and it solves a serious problem.
+- On a lighter side, I need to write a gaming program next to begin to relax my mind on just making cool fun stuff.
+
+## Reading Files In
+
+```{r}
+usethis::edit_r_environ()
+dat = Sys.getenv('first_dat')
+dat2 = Sys.getenv('scnd_dat')
+dat3 = Sys.getenv('third_dat')
+lipo_dat <- read.table(dat)
+lipo_dat2 <- read.table(dat2)
+lipo_dat3 <- read.table(dat3)
+```
+
+## General Idea (What started it all)
+
+      #Figured out the algo for the dat data cleanup
+      #1. extremely janky data and will need some old code but
+      some new stuff to really get the data cleaned #up and accurate.
+      #2. The Algo summary:
+      # turns out for every 3 tuples in a column, it needs to be converted into 1 row, to represent 3 samples
+      A1 B1 C1
+      so as such
+      v1
+      1
+      2
+      3
+      4
+      5
+      6
+      becomes (depending on your experimental setup)
+      A1 -- B1 -- C1
+      1     2     3
+      4     5     6
+
+## First Function (Clean Normal DATS)
+
+- This function was found useful for DAT files that showed a pattern.
+- Upon wasting 14 hours or more of my life, I was able to solve this with some of the most creative code I have ever come up with.
+- Should be useful in the future for some other project and if not the concept and syntax technique will be useful in the future.
+
+```{r}
+clean_evendat <- function(df){
+  for (i in (4 * (1:(nrow(df)/4)))){
+    k <- seq(4)
+    skip_values = 8 * seq(40)
+    if(i %in% skip_values) next
+    df[c(k+i,i),] <- NA
+  }
+  df <- na.omit(df)
+  return(df)
+}
+
+clean_evendat(lipo_dat)
+```
+
+## Second Function (Clean Abnormal DATS)
+
+- This function was written poorly at first and in usual fashion, everything will be documented here.
+- If you think solving a problem programmatically is a cake walk, think again. 
+- So this is a full unredacted documentation of this function and the improvements notice once I was able to get out of the crunch time zone (getting the package ready with immediate solutions) to finding alternate solutions (aka the learning stage).
+
+```{r}
+clean_odddat <- function(df){
+  library(dplyr)
+  special_chars <- c('-,','-' )
+  for (i in 1:nrow(df)){
+    for (j in 1:ncol(df)){
+      if(special_chars[1] %in% df[i,] && special_chars[2] %in% df[i,]){
+        df[i,j] <- NA
+      }
+    }
+  }
+  nona_rows_df <- na.omit(df)
+
+  for (i in 1:nrow(nona_rows_df)){
+    for (j in 1:ncol(nona_rows_df)){
+      if(special_chars[1] %in% nona_rows_df[,j] || special_chars[2] %in% nona_rows_df[,j]){
+        nona_rows_df[i,j] <- NA
+      }
+    }
+  }
+
+  comma_df <- nona_rows_df %>% select_if(~ !any(is.na(.)))
+
+  return(comma_df)
+}
+# this function has a few problems, all special cases could be caught using a logical OR statement opposed to a logical AND statement. The series of functions below will fix this syntax issue. Moreover, this function creates the problem of dealing with missed wells or wells out of sequence. No need for examples above.
+
+comma_cleaner <- function(comma_df){
+  cols_to_becleaned <- c(colnames(comma_df))
+  comma_df[ , cols_to_becleaned] <- lapply(comma_df[ , cols_to_becleaned],  # Convert data
+                                           function(x){ as.numeric(as.character(gsub(",", "", x))) })
+  return(as.data.frame(comma_df))
+
+}
+# this is a dependency for the the functions below.
+
+clean_odddat <- function(df){
+  library(dplyr)
+  special_chars <- c('-,','-' )
+  for (i in 1:nrow(df)){
+    for (j in 1:ncol(df)){
+      if(special_chars[1] %in% df[i,j] && special_chars[2] %in% df[i,j]){
+        df[i,j] <- NA
+      }
+    }
+  }
+  nona_rows_df <- df
+
+  for (i in 1:nrow(nona_rows_df)){
+    for (j in 1:ncol(nona_rows_df)){
+      if(special_chars[1] %in% nona_rows_df[i,j] || special_chars[2] %in% nona_rows_df[i,j]){
+        nona_rows_df[i,j] <- NA
+      }
+    }
+  }
+
+  comma_df <- nona_rows_df
+  comma_df <- comma_cleaner(comma_df)
+  comma_df <- comma_df[rowSums(is.na(comma_df)) != ncol(comma_df), ]
+
+  return(comma_df)
+}
+#this is a corrected version of the function and here there are no loopholes in making a program that can perform DAT wrangling. The syntax however is sloppy.
+
+clean_odddat <- function(df){
+  library(dplyr)
+  special_chars <- c('-,','-' )
+  for (i in 1:nrow(df)){
+    for (j in 1:ncol(df)){
+      if(special_chars[1] %in% df[i,j] || special_chars[2] %in% df[i,j]){
+        df[i,j] <- NA
+      }
+    }
+  }
+  nona_rows_df <- df
+
+  for (i in 1:nrow(nona_rows_df)){
+    for (j in 1:ncol(nona_rows_df)){
+      if(special_chars[1] %in% nona_rows_df[i,j] || special_chars[2] %in% nona_rows_df[i,j]){
+        nona_rows_df[i,j] <- NA
+      }
+    }
+  }
+
+  comma_df <- nona_rows_df
+  comma_df <- comma_cleaner(comma_df)
+  comma_df <- comma_df[rowSums(is.na(comma_df)) != ncol(comma_df), ]
+
+  return(comma_df)
+}
+# the function above fixes the syntax issue and then I leave the second check below as a double check of the special characters although it is completely optional and even useless.
+
+clean_odddat <- function(df){
+  library(dplyr)
+  special_chars <- c('-,','-' )
+  for (i in 1:nrow(df)){
+    for (j in 1:ncol(df)){
+      if(special_chars[1] %in% df[i,j] || special_chars[2] %in% df[i,j]){
+        df[i,j] <- NA
+      }
+    }
+  }
+  nona_rows_df <- df
+
+  comma_df <- nona_rows_df
+  nocomma_df <- comma_cleaner(comma_df)
+  nocomma_df <- nocomma_df[rowSums(is.na(nocomma_df)) != ncol(nocomma_df), ]
+
+  return(nocomma_df)
+}
+# this function is the most sophisticated and clean version of the function.
+
+```
+
+## Third Function (Clean Abnormal DATS)
+
+- Very similar to the second function but upon accident I discovered that comma_cleaner could do the work for the clean_odddat function I worked so hard to implement. This is very short and does the job too.
+
+```{r}
+clean_odd_cc <- function(df){
+
+  df <- comma_cleaner(df)
+  df <- df[rowSums(is.na(df)) != ncol(df), ]
+
+  return(df)
+
+}
+
+cleaned_odd <- clean_odd_cc(lipo_dat)
+```
+
+## Fourth Function (Resampling samples)
+
+- This function creates a separate column for each sample in the well. It was designed as a prototype and proved very useful in completing the program.
+- The tnp variable stands for test,negative,positive based on the standard protocol but this is simply the equivalent of the number of rows used in the experiment or as indicated on the well chart.
+
+```{r}
+resample_dat <- function(df, tnp, cycles){
+
+  type_size <- c(1:tnp)
+  k <- c(1:tnp)
+
+  resulting_df <- data.frame()
+  for (i in 1:(nrow(df)/tnp)){
+
+    colnames(resulting_df) = NULL
+    insert_row = df[k,]
+    colnames(insert_row) = NULL
+
+    resulting_df[i,type_size] <- rbind(insert_row, resulting_df, showWarnings = FALSE)
+
+    increment = tnp
+    k <- k + increment
+
+
+  }
+  return(resulting_df)
+}
+
+resample_datv2 <- function(df, tnp, cycles){
+
+  type_size <- c(1:tnp)
+  k <- c((1-tnp):(tnp-tnp)) # 1:3, 4:7, 115:117, 118:120 kth element < 120 based on standard setup
+
+  resulting_df <- data.frame()
+  for (i in 1:(nrow(df)/tnp)){
+
+    increment = tnp #(tnp=3 for 3 samples; tnp =2 for 2 samples)
+    k <- k + increment
+
+    colnames(resulting_df) = NULL
+    insert_row = df[k,]
+    colnames(insert_row) = NULL
+
+    resulting_df[i,type_size] <- rbind(insert_row, resulting_df, showWarnings = FALSE)
+
+
+  }
+  return(resulting_df)
+}
+#this function works as intended with no issues
+```
+
+## Fifth Function (Resampling samples Alternates)
+
+```{r}
+resample_dat_multiplex_wc <- function(df, tnp, samps = NULL, cycles, samples_per_tnp=NULL){
+
+
+    type_size <- c(1:(tnp*samps))
+    k <- c(1:(tnp*samps))
+
+    resulting_df <- data.frame()
+    for (i in 1:(nrow(df)/(tnp*samps)) ){
+
+      insert_row = df[k,]
+
+      resulting_df[i,type_size] <- rbind(insert_row, resulting_df)
+
+      increment = tnp*samps
+      k <- k + increment
+
+
+    }
+    return(resulting_df)
+
+}
+resamp_demo <- resample_dat_multiplex_wc(test1,3,3,40)
+#this function was designed to account for the possible future scenario that the machine writes everything to a single column
+
+#multiplex(defined as in each chunk written samples are mixed up)
+resample_dat_singleplex_wr <- function(df, tnp, cycles, samples_per_tnp=NULL){
+
+  samp_size <- c(1:cycles)
+
+  resulting_df <- matrix(nrow = cycles)
+  for (i in 1:tnp){
+      samps <- df[samp_size,]
+      samps <- as.data.frame(samps)
+      colnames(samps) <- NULL
+      resulting_df <- cbind(resulting_df, samps)
+      increment = cycles
+      samp_size <- samp_size + increment
+  }
+  resulting_df <- as.data.frame(resulting_df)
+  #resulting_df <- resulting_df %>% dplyr::select_if(~ !any(is.na(.)))
+  resulting_df <- resulting_df[ , colSums(is.na(resulting_df))==0]
+  colnames(resulting_df) <- NULL
+
+  return(resulting_df)
+}
+resamp_demo <- resample_dat_singleplex_wr(test1,3,40)
+#designed for a putative singleplex were all cycles for a single sample are written first then the next and so on. so just segmenting by 40 does the job.
+
+resample_dat_alt <- function(df, tnp, cycles, samples_per_tnp=NULL){
+
+  k <- c(1:ncol(df))
+  type_size <- c(1:ncol(df))
+
+  resulting_df <- data.frame()
+  for (i in 1:(nrow(df)/tnp)){
+
+    insert_row = df[k,]
+
+    resulting_df[i,type_size] <- rbind(insert_row, resulting_df)
+
+    increment_k = tnp
+    k <- k + increment_k
+
+    colnames(resulting_df) <- NULL
+
+  }
+  return(resulting_df)
+}
+
+resamp_demo <- resample_dat_alt(test1,3,40)
+#a prototype to resampling DATs by columns as opposed to by rows. this works just fine but no way to scale this easily as seen with the by rows method. next is a scaler built on this.
+```
+
+
+## Sixth Function (Resampling samples scaled)
+
+```{r}
+resample_dat_scale <- function(df, tnp, cycles){
+  library(data.table)
+  library(dplyr)
+
+  col_list <- c()
+  for(i in 1:ncol(df)){
+    n <- "a"
+    col_list <- c(col_list,assign(paste0(n, i), as.data.frame(df[,i])) )
+  }
+
+  j_vect <- c()
+  for(j in col_list){
+    j <- as.data.frame(j)
+    j_resampled <- resample_dat(j, tnp = tnp, cycles = cycles)
+    j_dfs <- as.data.frame(j_resampled)
+    j_vect <- c(j_vect, j_dfs)
+  }
+
+  big_data = do.call(rbind, j_vect)
+  big_data = as.data.frame(big_data)
+  big_data_t = transpose(l=big_data)
+
+  big_data_t <- big_data_t %>% select_if(~ !any(is.na(.)))
+  #big_data_t <- big_data_t[ , colSums(is.na(big_data_t))==0]
+
+  return(big_data_t)
+}
+
+test_scale <- resample_dat_scale(test, tnp = 3, cycles = 40)
+
+resample_dat_alt_scale <- function(df, tnp, cycles, samples_per_tnp=NULL){
+  library(tibble)
+
+  type_size <- c(1:ncol(df)) #k is now nseq(same kinda thing)
+
+  sample_df <- data.frame()
+  final_df <- matrix(ncol = cycles)
+
+  for(i in 1:tnp){
+    nseq <- c(i:ncol(df))
+    nseq <- nseq
+
+    for (j in 1:(nrow(df)/tnp)){
+
+      insert_row = df[nseq,]
+      sample_df[j,type_size] <- rbind(insert_row, sample_df)
+      increment_n = tnp
+      nseq <- nseq + increment_n
+
+    }
+    final_df <- cbind(sample_df, final_df)
+    final_df <- final_df[ , colSums(is.na(final_df))==0]
+    colnames(final_df) <- NULL
+    final_df <- as.data.frame(final_df)
+
+  }
+  #return(sample_df)
+  return(final_df)
+}
+resamp_demo <- resample_dat_alt_scale(test1,3,40)
+```
+
+
+## Seventh Function (Naming attributes)
+
+- This is were the bulk of logic was allocated.
+- Failure of the machine to produce DAT files with column names presented a hurdle when trying to name samples. The functions here are the best approximation to naming samples.
+
+```{r}
+dat_col_names <- function(df, rows_used = NULL, cols_used= NULL){
+  col_names <- c()
+  if(is.null(cols_used)){
+    for(i in 1:ncol(df)){
+      col_names <- c(col_names, paste0(rows_used,i)) #j was n
+    }
+    return(col_names[1:ncol(df)])
+  } else {
+    for(i in cols_used){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    return(col_names[1:(length(cols_used)*length(rows_used))])
+  }
+}
+#this one was the simplest form but seemed to lack all the logic to account for weird users.
+
+dat_col_names <- function(df, rows_used = NULL, cols_used= NULL, user_specific = NULL){
+  col_names <- c()
+
+   if(!is.null(user_specific)){
+    return(user_specific)
+
+  } else if(is.null(cols_used) && !is.null(rows_used)){
+    for(i in 1:ncol(df)){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    return(col_names[1:ncol(df)])
+
+  } else if(!is.null(rows_used) && !is.null(cols_used)){
+    for(i in cols_used){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    return(col_names[1:ncol(df)])
+  }
+}
+#a mild evolution from the one above
+
+dat_col_namesv3 <- function(df, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL){
+  col_names <- c()
+  if(!is.null(cols_used)){
+    normal_sequence = c(min(cols_used):max(cols_used))
+  } else {
+    normal_sequence = NULL
+  }
+
+  if(!is.null(user_specific_labels)){
+    return(user_specific_labels)
+
+  } else if(is.null(cols_used)){
+    for(i in 1:ncol(df)){
+      col_names <- c(col_names, paste0(rows_used,i)) #normal (left to right start at position 1 of plate (A1))
+    }
+    return(col_names[1:ncol(df)])
+
+  } else if(!is.null(rows_used) && !is.null(cols_used) && ncol(df) == length(cols_used)*length(rows_used) && length(cols_used) <= length(normal_sequence) ){
+
+    for(i in cols_used){
+      col_names <- c(col_names, paste0(rows_used,i)) #abnormal (right to left facing screen or center loading but in sequence)
+    }
+    return(col_names[1:ncol(df)])
+
+  } else if(is.null(user_specific_labels) && ncol(df) < length(cols_used)*length(rows_used) || length(cols_used) < length(normal_sequence) ){
+    for(i in cols_used){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    if(is.null(user_specific_labels)){
+      print(col_names[1:(length(cols_used)*length(rows_used))])
+      print('From the printed above list enter the columns used; must match the number of samples used in the plate;')
+      choose_cols_used=scan(what=character(), n=ncol(df))
+      print(choose_cols_used)
+      return(as.vector(choose_cols_used))
+    } else{
+      return(user_specific_labels)
+    }
+  }
+}
+#evolution of the naming logic but this was insufficient
+
+dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL){
+  col_names <- c()
+  if(!is.null(cols_used)){
+    normal_sequence = c(min(cols_used):max(cols_used))
+  } else {
+    normal_sequence = NULL
+  }
+
+  if(!is.null(user_specific_labels)){
+    return(user_specific_labels)
+
+  } else if(is.null(cols_used)){
+    for(i in 1:ncol(df)){
+      col_names <- c(col_names, paste0(rows_used,i)) #normal (left to right start at position 1 of plate (A1))
+    }
+    return(col_names[1:ncol(df)])
+
+  } else if(!is.null(rows_used) && !is.null(cols_used) && ncol(df) == length(cols_used)*length(rows_used) && length(cols_used) <= length(normal_sequence) ){
+
+    for(i in cols_used){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    return(col_names[1:ncol(df)])
+
+  } else if(is.null(user_specific_labels) && ncol(df) < length(cols_used)*length(rows_used) || length(cols_used) < length(normal_sequence) ){
+    for(i in cols_used){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    if(is.null(user_specific_labels)){
+      print(col_names[1:(length(cols_used)*length(rows_used))])
+      print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+      choose_cols_used=scan(what=character(), n=ncol(df))
+      print(choose_cols_used)
+      return(as.vector(choose_cols_used))
+    } else{
+      return(user_specific_labels)
+    }
+  }
+}
+#simplest version of dat_col_names_prime but not the best logic.
+
+dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
+  col_names <- c()
+  col_names_sort <- c()
+  if(!is.null(cols_used)){
+    normal_sequence = c(min(cols_used):max(cols_used))
+  } else {
+    normal_sequence = NULL
+  }
+
+  if(!is.null(user_specific_labels)){
+    return(user_specific_labels)
+
+  } else if(is.null(cols_used)){
+    for(i in 1:ncol(df)){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    if(is.null(read_direction)){
+      return(col_names[1:ncol(df)])
+    } else{
+      for(i in 1:(ncol(df)/length(rows_used)) ){
+        col_names_sort <- c(col_names_sort, paste0(rows_used,i))
+      }
+      col_names_sort <- stringr::str_sort(col_names_sort, decreasing = F, na_last = T, locale = 'en', numeric = T)
+
+      return(col_names_sort[1:ncol(df)])
+    }
+
+  } else if(!is.null(rows_used) && !is.null(cols_used) && ncol(df) == length(cols_used)*length(rows_used) && length(cols_used) <= length(normal_sequence) ){
+
+    for(i in cols_used){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    if(is.null(read_direction)){
+      return(col_names[1:ncol(df)])
+    } else{
+      col_names_sort <- stringr::str_sort(col_names, decreasing = F, na_last = T, locale = 'en', numeric = T)
+      return(col_names_sort[1:ncol(df)])
+    }
+  } else if(is.null(user_specific_labels) || ncol(df) < length(cols_used)*length(rows_used) || length(cols_used) < length(normal_sequence) ){
+    for(i in cols_used){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    if(is.null(user_specific_labels) && is.null(read_direction)){
+      print(col_names[1:(length(cols_used)*length(rows_used))])
+      print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+      choose_cols_used=scan(what=character(), n=ncol(df))
+      print(choose_cols_used)
+      return(as.vector(choose_cols_used))
+    } else if(is.null(user_specific_labels) && !is.null(read_direction) && read_direction == 'horizontal'){
+      col_names_sort <- stringr::str_sort(col_names, decreasing = F, na_last = T, locale = 'en', numeric = T)
+      print(col_names_sort[1:(length(cols_used)*length(rows_used))])
+      print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+      choose_cols_used=scan(what=character(), n=ncol(df))
+      print(choose_cols_used)
+    }else{
+      return(user_specific_labels)
+    }
+  }
+}
+
+check_dtc <- dat_col_names_prime(test, c('A','B','C'),read_direction = 'horizontal')
+#another evolution of the colnames function but less explicit
+
+dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
+
+  if(is.null(rows_used)){
+    warning('user must enter rows_used which is a character vector with length == tnp')
+  }
+
+  col_names <- c()
+  col_names_sort <- c()
+  if(!is.null(cols_used)){
+    normal_sequence = c(min(cols_used):max(cols_used))
+  } else {
+    normal_sequence = NULL
+  }
+
+  if(!is.null(user_specific_labels)){
+    return(user_specific_labels)
+
+  } else if(is.null(cols_used)){
+    for(i in 1:ncol(df)){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    if(is.null(read_direction)){
+      message('check data frame for NA column or last column names with unmatched or isolated samples')
+      return(col_names[1:ncol(df)])
+    } else {
+      for(i in 1:(ncol(df)/length(rows_used)) ){
+        col_names_sort <- c(col_names_sort, paste0(rows_used,i))
+      }
+      col_names_sort <- stringr::str_sort(col_names_sort, decreasing = F, na_last = T, locale = 'en', numeric = T)
+      message('check data frame for NA column names or last column with unmatched or isolated samples')
+      return(col_names_sort[1:ncol(df)])
+    }
+
+  } else if(!is.null(rows_used) && !is.null(cols_used) && ncol(df) == length(cols_used)*length(rows_used) && length(cols_used) <= length(normal_sequence) ){
+
+    for(i in cols_used){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    if(is.null(read_direction)){
+      return(col_names[1:ncol(df)])
+    } else {
+      col_names_sort <- stringr::str_sort(col_names, decreasing = F, na_last = T, locale = 'en', numeric = T)
+      return(col_names_sort[1:ncol(df)])
+    }
+  } else if(is.null(user_specific_labels) || ncol(df) < length(cols_used)*length(rows_used) && length(cols_used) < length(normal_sequence) ){
+    if(ncol(df) > length(cols_used)*length(rows_used)){
+      message('number of columns exceeds users estimate; try leaving the cols_used blank')
+      for(i in cols_used){
+        col_names <- c(col_names, paste0(rows_used,i))
+      }
+      if(is.null(user_specific_labels) && is.null(read_direction)){
+        print(col_names[1:ncol(df)] )
+        print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+        choose_cols_used=scan(what=character(), n=ncol(df))
+        print(choose_cols_used)
+        return(as.vector(choose_cols_used))
+      } else if(is.null(user_specific_labels) && !is.null(read_direction) && read_direction == 'horizontal'){
+        col_names_sort <- stringr::str_sort(col_names, decreasing = F, na_last = T, locale = 'en', numeric = T)
+        print(col_names_sort[1:ncol(df)] )
+        print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+        choose_cols_used=scan(what=character(), n=ncol(df))
+        print(choose_cols_used)
+      }else{
+        return(user_specific_labels)
+      }
+
+    }else {
+      message('number of columns is lower than the users estimate; select the columns used from the list below')
+      for(i in cols_used){
+        col_names <- c(col_names, paste0(rows_used,i))
+      }
+      if(is.null(user_specific_labels) && is.null(read_direction)){
+        print(col_names[1:(length(cols_used)*length(rows_used))])
+        print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+        choose_cols_used=scan(what=character(), n=ncol(df))
+        print(choose_cols_used)
+        return(as.vector(choose_cols_used))
+      } else if(is.null(user_specific_labels) && !is.null(read_direction) && read_direction == 'horizontal'){
+        col_names_sort <- stringr::str_sort(col_names, decreasing = F, na_last = T, locale = 'en', numeric = T)
+        print(col_names_sort[1:(length(cols_used)*length(rows_used))])
+        print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+        choose_cols_used=scan(what=character(), n=ncol(df))
+        print(choose_cols_used)
+      }else{
+        return(user_specific_labels)
+      }
+    }
+
+  }
+}
+#this evolved version is good with some minor tweaks
+
+dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
+
+  if(is.null(rows_used)){
+    warning('user must enter rows_used which is a character vector with length == tnp')
+  }
+
+  col_names <- c()
+  col_names_sort <- c()
+  if(!is.null(cols_used)){
+    normal_sequence = c(min(cols_used):max(cols_used))
+  } else {
+    normal_sequence = NULL
+  }
+
+  if(!is.null(user_specific_labels)){
+    return(user_specific_labels)
+
+  } else if(is.null(cols_used)){
+    for(i in 1:ncol(df)){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    if(is.null(read_direction) || read_direction == 'vertical'){
+      message('check data frame for NA column or last sample column names with unmatched or isolated samples')
+      return(col_names[1:ncol(df)])
+    } else if(read_direction == 'horizontal'){
+      for(i in 1:(ncol(df)/length(rows_used)) ){
+        col_names_sort <- c(col_names_sort, paste0(rows_used,i))
+      }
+      col_names_sort <- stringr::str_sort(col_names_sort, decreasing = F, na_last = T, locale = 'en', numeric = T)
+      message('check data frame for NA column names or last sample column with unmatched or isolated samples')
+      return(col_names_sort[1:ncol(df)])
+    }
+
+  } else if(!is.null(rows_used) && !is.null(cols_used) && ncol(df) == length(cols_used)*length(rows_used) && length(cols_used) <= length(normal_sequence) ){
+
+    for(i in cols_used){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    if(is.null(read_direction) || read_direction == 'vertical'){
+      return(col_names[1:ncol(df)])
+    } else if(read_direction == 'horizontal'){
+      col_names_sort <- stringr::str_sort(col_names, decreasing = F, na_last = T, locale = 'en', numeric = T)
+      return(col_names_sort[1:ncol(df)])
+    }
+  } else if(is.null(user_specific_labels) || ncol(df) < length(cols_used)*length(rows_used) && length(cols_used) < length(normal_sequence) ){
+    if(ncol(df) > length(cols_used)*length(rows_used)){
+      message('number of columns exceeds users estimate; try leaving the cols_used blank')
+      for(i in cols_used){
+        col_names <- c(col_names, paste0(rows_used,i))
+      }
+      if(is.null(user_specific_labels) && is.null(read_direction) || read_direction == 'vertical'){
+        print(col_names[1:ncol(df)] )
+        print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+        choose_cols_used=scan(what=character(), n=ncol(df))
+        print(choose_cols_used)
+        return(as.vector(choose_cols_used))
+      } else if(is.null(user_specific_labels) && !is.null(read_direction) && read_direction == 'horizontal'){
+        col_names_sort <- stringr::str_sort(col_names, decreasing = F, na_last = T, locale = 'en', numeric = T)
+        print(col_names_sort[1:ncol(df)] )
+        print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+        choose_cols_used=scan(what=character(), n=ncol(df))
+        print(choose_cols_used)
+      }else{
+        return(user_specific_labels)
+      }
+
+    }else {
+      message('number of columns is lower than the users estimate; select the columns used from the list below')
+      for(i in cols_used){
+        col_names <- c(col_names, paste0(rows_used,i))
+      }
+      if(is.null(user_specific_labels) && is.null(read_direction) || read_direction == 'vertical'){
+        print(col_names[1:(length(cols_used)*length(rows_used))])
+        print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+        choose_cols_used=scan(what=character(), n=ncol(df))
+        print(choose_cols_used)
+        return(as.vector(choose_cols_used))
+      } else if(is.null(user_specific_labels) && !is.null(read_direction) && read_direction == 'horizontal'){
+        col_names_sort <- stringr::str_sort(col_names, decreasing = F, na_last = T, locale = 'en', numeric = T)
+        print(col_names_sort[1:(length(cols_used)*length(rows_used))])
+        print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+        choose_cols_used=scan(what=character(), n=ncol(df))
+        print(choose_cols_used)
+      }else{
+        return(user_specific_labels)
+      }
+    }
+
+  }
+}
+#this is the final version and more explicit
+
+#ru= tnp
+#instead of stringr
+dat_col_names_lr <- function(df, rows_used=NULL,cols_used=NULL){
+
+  cols_sort <- c()
+  cols_sort_fit <- c()
+
+  for(i in rows_used){
+    cols_sort <- append(cols_sort, paste0(i,cols_used))
+  }
+
+  range <- 1:(length(cols_sort)/rows_used)
+
+  for(j in 1:rows_used){
+    increment = length(cols_sort)/rows_used
+    cols_sort_fit <- append(cols_sort_fit, cols_sort[range])
+    range <- range + increment
+  }
+
+  return(cols_sort_fit)
+
+}
+
+dat_col_names_lr <- function(df, rows_used=NULL){
+
+  cols_sort <- c()
+  cols_sort_fit <- c()
+
+  for(i in rows_used){
+    cols_sort <- append(cols_sort, paste0(i, c(1:ncol(df)) ))
+  }
+
+  range <- 1:(ncol(df)/length(rows_used))
+
+  for(j in 1:length(rows_used)){
+    increment = (ncol(df)/length(rows_used))*length(rows_used)
+    cols_sort_fit <- append(cols_sort_fit, cols_sort[range])
+    range <- range + increment
+  }
+
+  return(cols_sort_fit)
+
+}
+#instead of using stringr, i can use this
+dat_col_names_lr(test,c('A','B','C'))
+
+
+dat_col_names_norm <- function(df, rows_used = NULL, start = NULL, end = NULL, in_sequence= NULL){
+
+  col_names <- c()
+
+  if(!is.null(rows_used) && start < end &&  !is.null(end) && in_sequence == 'yes'){
+    cols_used = c(start:end)
+    for(i in cols_used){
+      col_names <- c(col_names, paste0(rows_used,i)) #normal (left to right start at position 1 of plate (A1))
+    }
+    return(col_names[1:ncol(df)])
+
+  } else {
+    print('you must enter a character vector of rows used, and other parameters')
+  }
+
+}
+check_norm <- dat_col_names_norm(trial1_scale ,c('A','B','C'),1,12,'yes')
+check_norm
+#this version is just another take on naming attributes
+
+
+
+```
+
+
+## Eigth Function (Fluor threshold checker)
+
+```{r}
+install.packages('emojifont')
+library(emojifont)
+devtools::install_github("hadley/emo")
+library(emo)
+list.emojifonts()
+
+for(i in 1:ncol(trial1_scale)){
+  for(j in 1:nrow(trial1_scale)){
+    if(i ==2  && j ==2){
+      trial1_scale[j,i] <- 2^16
+    }
+  }
+}
+
+for(i in 1:ncol(lipo_dat)){
+  for(j in 1:nrow(lipo_dat)){
+    if(i ==2  && j ==2){
+      lipo_dat[j,i] <- 2^16
+    }
+  }
+}
+#data manipulation for using the function below
+
+check_max_fluor <- function(clean_df){
+  library(emojifont)
+  load.emojifont(font = "EmojiOne.ttf")
+  for(i in 1:nrow(clean_df)){
+    for(j in 1:ncol(clean_df)){
+      if( (clean_df[i,j] >= 2^15) || (clean_df[i,j] <= 2^11 ) && !is.null(clean_df[i,j]) ){
+        message(c(emoji('pig'), emoji('camel')))
+        message("YIKES, one or more of your fluorescence values is greater than 2^16(65536) or less than 2^11(2048), watchout for very high fluorescence or very low in your next experimental design")
+        message(paste('these values are either too high or low and can lead to NOISE','column:', j , 'row:', i))
+      }
+    }
+  }
+}
+check_max_fluor(trial1_scale)
+```
+
+## Ninth Function (Normalizer)
+
+- This is the simple normalize function. Nothing much to say here.
+
+```{r}
+min_max_norm <- function(x) {
+  (x - min(x)) / (max(x) - min(x))
+}
+```
+
+
+## Tenth Function (Unique identifier cycle No)
+
+```{r}
+unique_identifier <- function(df){
+  for(i in 1:nrow(df)){
+    x <- 0
+    x <- x + i
+    df$unique_id[i] <- x
+  }
+  return(df)
+}
+```
+
+## Eleventh Function (Normfluodat)
+
+```{r}
+n = c('A','B','C')
+
+normfluodat <- function(dat, tnp, cycles, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
+
+  library(data.table)
+
+  df <- read.table(dat) #dat becomes df
+  df <- clean_odddat(df)
+  df <- comma_cleaner(df)
+  df <- as.data.frame(df)
+
+  col_list <- c()
+  for(i in 1:ncol(df)){
+    n <- "a"
+    col_list <- c(col_list,assign(paste0(n, i), as.data.frame(df[,i])) )
+  }
+
+  j_vect <- c()
+  for(j in col_list){
+    j <- as.data.frame(j)
+    j_resampled <- resample_dat(j, tnp = tnp, cycles = cycles)
+    j_dfs <- as.data.frame(j_resampled)
+    j_vect <- c(j_vect, j_dfs)
+  }
+
+  cleaned_dat = do.call(rbind, j_vect)
+  cleaned_dat = as.data.frame(cleaned_dat)
+  cleaned_dat_t = transpose(l=cleaned_dat)
+
+  #normalize
+  cleaned_dat_t <- as.data.frame(lapply(cleaned_dat_t[1:ncol(cleaned_dat_t)], min_max_norm))
+
+  #name the columns
+  ru = rows_used
+  cu = cols_used
+  usl = user_specific_labels
+  dr = read_direction
+  sample_col_names <- dat_col_names_prime(cleaned_dat_t, ru, cu, usl, dr)
+  colnames(cleaned_dat_t) <- sample_col_names
+
+  #add unique_id
+  cleaned_dat_t <-unique_identifier(cleaned_dat_t)
+
+  return(cleaned_dat_t)
+}
+#a look at the logic of the failing normfluodat. NA omit is ran too early presenting the issue of truncating samples earlier than expected when the user does not load wells in sequence. Given this really happens when using the bad clean_odddat function.
+
+normfluodat <- function(dat, tnp, cycles, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
+
+  library(data.table)
+
+  df <- read.table(dat) #dat becomes df
+  df <- clean_odd_cc(df)
+
+  col_list <- c()
+  for(i in 1:ncol(df)){
+    n <- "a"
+    col_list <- c(col_list,assign(paste0(n, i), as.data.frame(df[,i])) )
+  }
+
+  j_vect <- c()
+  for(j in col_list){
+    j <- as.data.frame(j)
+    j_resampled <- resample_dat(j, tnp = tnp, cycles = cycles)
+    j_dfs <- as.data.frame(j_resampled)
+    j_vect <- c(j_vect, j_dfs)
+  }
+
+  cleaned_dat = do.call(rbind, j_vect)
+  cleaned_dat = as.data.frame(cleaned_dat)
+  cleaned_dat_t = transpose(l=cleaned_dat)
+  cleaned_dat_t <- cleaned_dat_t %>% select_if(~ !any(is.na(.)))
+  check_max_fluor(cleaned_dat_t)
+
+  #normalize
+  cleaned_dat_t <- as.data.frame(lapply(cleaned_dat_t[1:ncol(cleaned_dat_t)], min_max_norm))
+
+  #name the columns
+  ru = rows_used
+  cu = cols_used
+  usl = user_specific_labels
+  rd = read_direction
+  sample_col_names <- dat_col_names_prime(cleaned_dat_t, ru, cu, usl, rd)
+  colnames(cleaned_dat_t) <- sample_col_names
+
+  #add unique_id
+  cleaned_dat_t <-unique_identifier(cleaned_dat_t)
+
+  return(cleaned_dat_t)
+}
+
+```
+
+## Twelfth Function (Visualizer)
+
+```{r}
+yvars <- c("A1","B1","C1")
+xvar <- c("Cycle_No")
+color <- c("Test","Negative Control","Positive Control")
+xl <- c(0,40)
+yl <- c(0,1)
+#shinyapp version 1 ).DATA[[]] VERSION
+library(ggplot2)
+library(ggthemes)
+library(ggdark)
+gg_plot_triplets <- function(df, x, y_list, xlim, ylim){
+  ggplot(df, aes(x=.data[[x[1]]])) +
+    geom_point(aes(y=.data[[y_list[1]]]), size=3, color="blue") +
+    geom_point(aes(y=.data[[y_list[2]]]), size=3, color="red") +
+    geom_point(aes(y=.data[[y_list[3]]]), size=3, color="green") +
+    geom_line(aes(y=.data[[y_list[1]]], color="Test"), size = 0.8) +
+    geom_line(aes(y=.data[[y_list[2]]], color="Negative Control"),size = 0.8) +
+    geom_line(aes(y=.data[[y_list[3]]], color="Positivetive Control"), size = 0.8) +
+    dark_mode()+  coord_cartesian(xlim = xlim) +  coord_cartesian(ylim=ylim) +
+    labs(title = 'NavAb Liposome Flux Assay',
+         x = 'Cycle_no', y='Normalized Fluorescence', color='Sample Type')
+}
+
+gg_plot_triplets(normalized_fluo_dat,x=xvar,y_list=yvars,xlim=xl,ylim=yl)
+
+
+
+
+# 'Cycle_no'
+# 'Normalized Fluorescence'
+# 'NavAb Liposome Flux Assay'
+library(ggplot2)
+gg_plot_triplets <- function(df, x=NULL, y_list=NULL, xlim, ylim){
+
+  if(is.null(x) && is.null(y_list)){
+    print('Enter the X-variable usually the cycle number')
+    x_var = scan(what=character(), n=1)
+
+    print('Enter the test sample')
+    test = scan(what=character(), n=1)
+
+    print('Enter the negative control')
+    nc = scan(what=character(), n=1)
+
+    print('Enter the positive control')
+    pc = scan(what=character(), n=1)
+
+    print('Enter the x-label')
+    x_lab = scan(what=character(), n=1)
+    print('Enter the y-label')
+    y_lab = scan(what=character(), n=1)
+    print('Enter the plot title')
+    titlef = scan(what=character(), n=1)
+
+    ggplot(df, aes(x=.data[[x_var]])) +
+      geom_point(aes(y=.data[[test]]), size=3, color="blue") +
+      geom_point(aes(y=.data[[nc]]), size=3, color="red") +
+      geom_point(aes(y=.data[[pc]]), size=3, color="green") +
+      geom_line(aes(y=.data[[test]], color="Test"), size = 0.8) +
+      geom_line(aes(y=.data[[nc]], color="Negative Control"),size = 0.8) +
+      geom_line(aes(y=.data[[pc]], color="Positivetive Control"), size = 0.8) +
+      coord_cartesian(xlim = xlim) +  coord_cartesian(ylim=ylim) +
+      labs(title = titlef,
+           x = x_lab , y= y_lab, color='Sample Type (TNP)')
+  } else{
+    print('Enter the x-label')
+    x_lab = scan(what=character(), n=1)
+    print('Enter the y-label')
+    y_lab = scan(what=character(), n=1)
+    print('Enter the plot title')
+    titlef = scan(what=character(), n=1)
+
+    ggplot(df, aes(x=.data[[x[1]]])) +
+      geom_point(aes(y=.data[[y_list[1]]]), size=3, color="blue") +
+      geom_point(aes(y=.data[[y_list[2]]]), size=3, color="red") +
+      geom_point(aes(y=.data[[y_list[3]]]), size=3, color="green") +
+      geom_line(aes(y=.data[[y_list[1]]], color="Test"), size = 0.8) +
+      geom_line(aes(y=.data[[y_list[2]]], color="Negative Control"),size = 0.8) +
+      geom_line(aes(y=.data[[y_list[3]]], color="Positivetive Control"), size = 0.8) +
+      coord_cartesian(xlim = xlim) +  coord_cartesian(ylim=ylim) +
+      labs(title = titlef,
+           x = x_lab , y= y_lab, color='Sample Type (TNP)')
+
+  }
+
+}
+
+yvars <- c("logA1","logB1","logC1")
+yvars <- c("A1","B1","C1")
+xvar <- c("Cycle_No")
+color <- c("Test","Negative Control","Positive Control")
+xl <- c(0,40)
+yl <- c(0,1)
+yl_log <- c(-2,0)
+gg_plot_triplets(trial1_scale,x=xvar,y_list=yvars,xlim=xl,ylim=yl)
+gg_plot_triplets(trial1_scale,xlim=xl,ylim=yl)
+
+```
+

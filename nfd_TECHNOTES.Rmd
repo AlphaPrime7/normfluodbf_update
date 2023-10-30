@@ -878,7 +878,7 @@ check_max_fluor <- function(clean_df){
     }
   }
 }
-check_max_fluor(trial1_scale)
+check_max_fluor(test_scale)
 ```
 
 ## Ninth Function (Normalizer)

@@ -2,6 +2,7 @@
 
 dat = Sys.getenv('first_dat')
 dat = Sys.getenv('third_dat')
+dat = Sys.getenv('scnd_dat')
 lipo_dat <- read.table(dat)
 
 #SUBORDINATE FUNCTIONS
@@ -48,7 +49,26 @@ clean_odddat <- function(df){
   return(nocomma_df)
 }
 
-test <- clean_odddat(lipo_dat)
+clean_odddatv2 <- function(df,tnp,cycles){
+  special_chars <- c('-,','-' )
+  for (i in 1:nrow(df)){
+    for (j in 1:ncol(df)){
+      if(special_chars[1] %in% df[i,j] || special_chars[2] %in% df[i,j]){
+        df[i,j] <- NA
+      }
+    }
+  }
+  nona_rows_df <- df
+
+  comma_df <- nona_rows_df
+  nocomma_df <- comma_cleaner(comma_df)
+  nocomma_df <- nocomma_df[rowSums(is.na(nocomma_df)) != ncol(nocomma_df), ]
+  rownames(nocomma_df) <- c(1:(tnp*cycles))
+
+  return(nocomma_df)
+}
+
+test <- clean_odddatv2(lipo_dat,3,40)
 
 # 3.
 
@@ -87,6 +107,29 @@ resample_dat <- function(df, tnp, cycles){
   }
   return(resulting_df)
 }
+
+resample_dat_alt <- function(df, tnp, cycles, samples_per_tnp=NULL){
+
+  k <- c(1:ncol(df))
+  type_size <- c(1:ncol(df))
+
+  resulting_df <- data.frame()
+  for (i in 1:(nrow(df)/tnp)){
+
+    insert_row = df[k,]
+
+    resulting_df[i,type_size] <- rbind(insert_row, resulting_df)
+
+    increment_k = tnp
+    k <- k + increment_k
+
+    colnames(resulting_df) <- NULL
+
+  }
+  return(resulting_df)
+}
+
+resamp_demo <- resample_dat_alt(test,3,40)
 
 # 5.
 
@@ -152,7 +195,7 @@ resample_dat_scale <- function(df, tnp, cycles){
 
 test_scale <- resample_dat_scale(test, tnp = 3, cycles = 40)
 
-resample_dat_alt_scale <- function(df, tnp, cycles, samples_per_tnp=NULL){
+resample_dat_scale_alt <- function(df, tnp, cycles, samples_per_tnp=NULL){
 
   type_size <- c(1:ncol(df)) #k is now nseq(same kinda thing)
 
@@ -181,7 +224,7 @@ resample_dat_alt_scale <- function(df, tnp, cycles, samples_per_tnp=NULL){
   #return(sample_df)
   return(final_df)
 }
-resamp_demo <- resample_dat_alt_scale(test,3,40)
+resamp_demo <- resample_dat_scale_alt(test,3,40)
 
 # 6.
 
@@ -276,25 +319,160 @@ dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_spec
   }
 }
 
+
 check_dtc <- dat_col_names_prime(test, c('A','B','C'),read_direction = 'horizontal')
 check_dtc
 
+dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
+
+  if(is.null(rows_used)){
+    warning('user must enter rows_used which is a character vector with length == tnp')
+  }
+
+  col_names <- c()
+  col_names_sort <- c()
+  if(!is.null(cols_used)){
+    normal_sequence = c(min(cols_used):max(cols_used))
+  } else {
+    normal_sequence = NULL
+  }
+
+  if(!is.null(user_specific_labels)){
+    return(user_specific_labels)
+
+  } else if(is.null(cols_used)){
+    for(i in 1:ncol(df)){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    if(is.null(read_direction) || read_direction == 'vertical'){
+      message('check data frame for NA column or last sample column names with unmatched or isolated samples')
+      return(col_names[1:ncol(df)])
+    } else if(read_direction == 'horizontal'){
+      for(i in 1:(ncol(df)/length(rows_used)) ){
+        col_names_sort <- c(col_names_sort, paste0(rows_used,i))
+      }
+      col_names_sort <- stringr::str_sort(col_names_sort, decreasing = F, na_last = T, locale = 'en', numeric = T)
+      message('check data frame for NA column names or last sample column with unmatched or isolated samples')
+      return(col_names_sort[1:ncol(df)])
+    }
+
+  } else if(!is.null(rows_used) && !is.null(cols_used) && ncol(df) == length(cols_used)*length(rows_used) && length(cols_used) <= length(normal_sequence) ){
+
+    for(i in cols_used){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    if(is.null(read_direction) || read_direction == 'vertical'){
+      return(col_names[1:ncol(df)])
+    } else if(read_direction == 'horizontal'){
+      col_names_sort <- stringr::str_sort(col_names, decreasing = F, na_last = T, locale = 'en', numeric = T)
+      return(col_names_sort[1:ncol(df)])
+    }
+  } else if(is.null(user_specific_labels) || ncol(df) < length(cols_used)*length(rows_used) && length(cols_used) < length(normal_sequence) ){
+    if(ncol(df) > length(cols_used)*length(rows_used)){
+      message('number of columns exceeds users estimate; try leaving the cols_used blank')
+      for(i in cols_used){
+        col_names <- c(col_names, paste0(rows_used,i))
+      }
+      if(is.null(user_specific_labels) && is.null(read_direction) || read_direction == 'vertical'){
+        print(col_names[1:ncol(df)] )
+        print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+        choose_cols_used=scan(what=character(), n=ncol(df))
+        print(choose_cols_used)
+        return(as.vector(choose_cols_used))
+      } else if(is.null(user_specific_labels) && !is.null(read_direction) && read_direction == 'horizontal'){
+        col_names_sort <- stringr::str_sort(col_names, decreasing = F, na_last = T, locale = 'en', numeric = T)
+        print(col_names_sort[1:ncol(df)] )
+        print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+        choose_cols_used=scan(what=character(), n=ncol(df))
+        print(choose_cols_used)
+      }else{
+        return(user_specific_labels)
+      }
+
+    }else {
+      message('number of columns is lower than the users estimate; select the columns used from the list below')
+      for(i in cols_used){
+        col_names <- c(col_names, paste0(rows_used,i))
+      }
+      if(is.null(user_specific_labels) && is.null(read_direction) || read_direction == 'vertical'){
+        print(col_names[1:(length(cols_used)*length(rows_used))])
+        print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+        choose_cols_used=scan(what=character(), n=ncol(df))
+        print(choose_cols_used)
+        return(as.vector(choose_cols_used))
+      } else if(is.null(user_specific_labels) && !is.null(read_direction) && read_direction == 'horizontal'){
+        col_names_sort <- stringr::str_sort(col_names, decreasing = F, na_last = T, locale = 'en', numeric = T)
+        print(col_names_sort[1:(length(cols_used)*length(rows_used))])
+        print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+        choose_cols_used=scan(what=character(), n=ncol(df))
+        print(choose_cols_used)
+      }else{
+        return(user_specific_labels)
+      }
+    }
+
+  }
+}
+
+
 # 7.
 
-check_max_fluor <- function(clean_df){
+check_max_fluor <- function(clean_df, fun = NA){
   library(emojifont)
   load.emojifont(font = "EmojiOne.ttf")
+
+  nofun <- is.na(fun)
+  clean_df <- rbind(clean_df, NA)
+  clean_df <- cbind(clean_df, NA)
   for(i in 1:nrow(clean_df)){
     for(j in 1:ncol(clean_df)){
-      if( (clean_df[i,j] >= 2^15) || (clean_df[i,j] <= 2^11 ) && !is.null(clean_df[i,j]) ){
+      if ( clean_df[i,j] >= (2^15) && is.na(clean_df[i,j]) != nofun ){
         message(c(emoji('pig'), emoji('camel')))
-        message("YIKES, one or more of your fluorescence values is greater than 2^16(65536) or less than 2^11(2048), watchout for very high fluorescence or very low in your next experimental design")
-        message(paste('these values are either too high or low and can lead to NOISE','column:', j , 'row:', i))
+        message(paste("YIKES, value > 2^15, Watch in future experimental designs",'column:', j , 'row:', i))
+      } else if ( clean_df[i,j] <= (2^11) && is.na(clean_df[i,j]) != nofun ){
+        message(c(emoji('pig'), emoji('camel')))
+        message(paste("YIKES, value < 2^11, Watch in future experimental designs",'column:', j , 'row:', i))
       }
     }
   }
 }
-check_max_fluor(trial1_scale)
+check_max_fluor(test_scale)
+
+check_max_fluor <- function(clean_df, fun = NA){
+  library(emojifont)
+  load.emojifont(font = "EmojiOne.ttf")
+
+  nofun <- is.na(fun)
+  #clean_df <- rbind(clean_df, NA)
+  for(i in 1:nrow(clean_df)){
+    for(j in 1:ncol(clean_df)){
+      if( (clean_df[i,j] <= 2^15 || clean_df[i,j] >= 2^11)  && is.na(clean_df[i,j]) != nofun ){
+        #nothing
+      } else{
+        message(c(emoji('pig'), emoji('camel')))
+        message("Crikee, some values in your original data violate thresholds threshold")
+      }
+    }
+  }
+}
+check_max_fluor(test)
+
+for(i in 1:ncol(test_scale)){
+  for(j in 1:nrow(test_scale)){
+    if(i ==2  && j ==3){
+      test_scale[j,i] <- 2^16
+    }
+  }
+}
+
+for(i in 1:ncol(test_scale)){
+  for(j in 1:nrow(test_scale)){
+    if(i ==2  && j ==4){
+      test_scale[j,i] <- 2^11
+    }
+  }
+}
+
 
 # 8.
 
@@ -318,6 +496,7 @@ unique_identifier <- function(df){
 normfluodat <- function(dat, tnp, cycles, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
 
   library(data.table)
+  library(dplyr)
 
   df <- read.table(dat) #dat becomes df
   df <- clean_odd_cc(df)
@@ -339,7 +518,7 @@ normfluodat <- function(dat, tnp, cycles, rows_used = NULL, cols_used= NULL, use
   cleaned_dat = do.call(rbind, j_vect)
   cleaned_dat = as.data.frame(cleaned_dat)
   cleaned_dat_t = transpose(l=cleaned_dat)
-  cleaned_dat_t <- cleaned_dat_t %>% select_if(~ !any(is.na(.)))
+  cleaned_dat_t <- cleaned_dat_t %>% dplyr::select_if(~ !any(is.na(.)))
   check_max_fluor(cleaned_dat_t)
 
   #normalize

@@ -505,6 +505,24 @@ min_max_norm <- function(x) {
   (x - min(x)) / (max(x) - min(x))
 }
 
+min_max_norm_percent <- function(x){
+  ((x - min(x)) / (max(x) - min(x))) * 100
+}
+
+norm_z <- function(x){
+  (x - mean(x)) / sd(x)
+}
+
+decimal_scaling <- function(x){
+  max_abs <- max(abs(x))
+  power <- ceiling(log10(max_abs))
+  x/(10^power)
+}
+
+roundfluor <- function(x){
+  round(x, 3)
+}
+
 # 9. Unique_identifier
 
 unique_identifier <- function(df){

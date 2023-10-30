@@ -5,6 +5,8 @@ normfluodat <- function(dat, tnp, cycles, rows_used = NULL, cols_used= NULL, use
   df <- read.table(dat)
   #df <- clean_odd_cc(df)
   df <- clean_odddat(df)
+  check_max_fluor_na(df)
+  check_max_fluor_raw(df)
 
   if(is.null(read_direction) || read_direction == 'vertical'){
 

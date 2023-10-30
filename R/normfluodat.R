@@ -417,6 +417,7 @@ dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_spec
 
 # 7.
 
+#check proper resampled
 check_max_fluor <- function(clean_df, fun = NA){
   library(emojifont)
   load.emojifont(font = "EmojiOne.ttf")
@@ -438,7 +439,8 @@ check_max_fluor <- function(clean_df, fun = NA){
 }
 check_max_fluor(test_scale)
 
-check_max_fluor <- function(clean_df, fun = NA){
+#checks for NAs
+check_max_fluor_na <- function(clean_df, fun = NA){
   library(emojifont)
   load.emojifont(font = "EmojiOne.ttf")
 
@@ -449,13 +451,36 @@ check_max_fluor <- function(clean_df, fun = NA){
       if( (clean_df[i,j] <= 2^15 || clean_df[i,j] >= 2^11)  && is.na(clean_df[i,j]) != nofun ){
         #nothing
       } else{
-        message(c(emoji('pig'), emoji('camel')))
-        message("Crikee, some values in your original data violate thresholds threshold")
+        warning("Crikee, some values in your original data are NA values")
+        warning(c(emoji('pig'), emoji('camel')))
+        warning(paste(j,i))
       }
     }
   }
 }
-check_max_fluor(test)
+check_max_fluor_na(test)
+
+#checks for thresholds in original
+check_max_fluor_raw <- function(clean_df, fun = NA){
+  library(emojifont)
+  load.emojifont(font = "EmojiOne.ttf")
+
+  nofun <- is.na(fun)
+  #clean_df <- rbind(clean_df, NA)
+  for(i in 1:nrow(clean_df)){
+    for(j in 1:ncol(clean_df)){
+      if( (clean_df[i,j] >= 2^15 || clean_df[i,j] <= 2^11)  && is.na(clean_df[i,j]) != nofun ){
+        warning(c(emoji('pig'), emoji('camel')))
+        warning("Crikee, some values in your original data violate thresholds")
+
+      } else{
+        #nothing
+      }
+    }
+  }
+
+}
+check_max_fluor_raw(test)
 
 for(i in 1:ncol(test_scale)){
   for(j in 1:nrow(test_scale)){

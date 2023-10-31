@@ -5,8 +5,8 @@ output: html_notebook
 
 # GENERAL FLOW
 
-- It must be mentioned that this is my first major project and it solves a serious problem.
-- On a lighter side, I need to write a gaming program next to begin to relax my mind on just making cool fun stuff.
+-   It must be mentioned that this is my first major project and it solves a serious problem.
+-   On a lighter side, I need to write a gaming program next to begin to relax my mind on just making cool fun stuff.
 
 ## Reading Files In
 
@@ -22,30 +22,32 @@ lipo_dat3 <- read.table(dat3)
 
 ## General Idea (What started it all)
 
-      #Figured out the algo for the dat data cleanup
-      #1. extremely janky data and will need some old code but
-      some new stuff to really get the data cleaned #up and accurate.
-      #2. The Algo summary:
-      # turns out for every 3 tuples in a column, it needs to be converted into 1 row, to represent 3 samples
-      A1 B1 C1
-      so as such
-      v1
-      1
-      2
-      3
-      4
-      5
-      6
-      becomes (depending on your experimental setup)
-      A1 -- B1 -- C1
-      1     2     3
-      4     5     6
+```         
+  #Figured out the algo for the dat data cleanup
+  #1. extremely janky data and will need some old code but
+  some new stuff to really get the data cleaned #up and accurate.
+  #2. The Algo summary:
+  # turns out for every 3 tuples in a column, it needs to be converted into 1 row, to represent 3 samples
+  A1 B1 C1
+  so as such
+  v1
+  1
+  2
+  3
+  4
+  5
+  6
+  becomes (depending on your experimental setup)
+  A1 -- B1 -- C1
+  1     2     3
+  4     5     6
+```
 
 ## First Function (Clean Normal DATS)
 
-- This function was found useful for DAT files that showed a pattern.
-- Upon wasting 14 hours or more of my life, I was able to solve this with some of the most creative code I have ever come up with.
-- Should be useful in the future for some other project and if not the concept and syntax technique will be useful in the future.
+-   This function was found useful for DAT files that showed a pattern.
+-   Upon wasting 14 hours or more of my life, I was able to solve this with some of the most creative code I have ever come up with.
+-   Should be useful in the future for some other project and if not the concept and syntax technique will be useful in the future.
 
 ```{r}
 clean_evendat <- function(df){
@@ -64,9 +66,9 @@ clean_evendat(lipo_dat)
 
 ## Second Function (Clean Abnormal DATS)
 
-- This function was written poorly at first and in usual fashion, everything will be documented here.
-- If you think solving a problem programmatically is a cake walk, think again. 
-- So this is a full unredacted documentation of this function and the improvements notice once I was able to get out of the crunch time zone (getting the package ready with immediate solutions) to finding alternate solutions (aka the learning stage).
+-   This function was written poorly at first and in usual fashion, everything will be documented here.
+-   If you think solving a problem programmatically is a cake walk, think again.
+-   So this is a full unredacted documentation of this function and the improvements notice once I was able to get out of the crunch time zone (getting the package ready with immediate solutions) to finding alternate solutions (aka the learning stage).
 
 ```{r}
 clean_odddat <- function(df){
@@ -184,7 +186,7 @@ clean_odddat <- function(df){
 
 ## Third Function (Clean Abnormal DATS)
 
-- Very similar to the second function but upon accident I discovered that comma_cleaner could do the work for the clean_odddat function I worked so hard to implement. This is very short and does the job too.
+-   Very similar to the second function but upon accident I discovered that comma_cleaner could do the work for the clean_odddat function I worked so hard to implement. This is very short and does the job too.
 
 ```{r}
 clean_odd_cc <- function(df){
@@ -201,8 +203,8 @@ cleaned_odd <- clean_odd_cc(lipo_dat)
 
 ## Fourth Function (Resampling samples)
 
-- This function creates a separate column for each sample in the well. It was designed as a prototype and proved very useful in completing the program.
-- The tnp variable stands for test,negative,positive based on the standard protocol but this is simply the equivalent of the number of rows used in the experiment or as indicated on the well chart.
+-   This function creates a separate column for each sample in the well. It was designed as a prototype and proved very useful in completing the program.
+-   The tnp variable stands for test,negative,positive based on the standard protocol but this is simply the equivalent of the number of rows used in the experiment or as indicated on the well chart.
 
 ```{r}
 resample_dat <- function(df, tnp, cycles){
@@ -327,7 +329,6 @@ resamp_demo <- resample_dat_alt(test1,3,40)
 #a prototype to resampling DATs by columns as opposed to by rows. this works just fine but no way to scale this easily as seen with the by rows method. next is a scaler built on this.
 ```
 
-
 ## Sixth Function (Resampling samples scaled)
 
 ```{r}
@@ -424,11 +425,10 @@ resamp_demo <- resample_dat_alt_scale(test,3,40)
 #tibble refuses to work
 ```
 
-
 ## Seventh Function (Naming attributes)
 
-- This is were the bulk of logic was allocated.
-- Failure of the machine to produce DAT files with column names presented a hurdle when trying to name samples. The functions here are the best approximation to naming samples.
+-   This is were the bulk of logic was allocated.
+-   Failure of the machine to produce DAT files with column names presented a hurdle when trying to name samples. The functions here are the best approximation to naming samples.
 
 ```{r}
 dat_col_names <- function(df, rows_used = NULL, cols_used= NULL){
@@ -868,7 +868,6 @@ check_norm
 
 ```
 
-
 ## Eigth Function (Fluor threshold checker)
 
 ```{r}
@@ -913,14 +912,13 @@ check_max_fluor(test_scale)
 
 ## Ninth Function (Normalizer)
 
-- This is the simple normalize function. Nothing much to say here.
+-   This is the simple normalize function. Nothing much to say here.
 
 ```{r}
 min_max_norm <- function(x) {
   (x - min(x)) / (max(x) - min(x))
 }
 ```
-
 
 ## Tenth Function (Unique identifier cycle No)
 
@@ -1131,4 +1129,3 @@ gg_plot_triplets(trial1_scale,x=xvar,y_list=yvars,xlim=xl,ylim=yl)
 gg_plot_triplets(trial1_scale,xlim=xl,ylim=yl)
 
 ```
-

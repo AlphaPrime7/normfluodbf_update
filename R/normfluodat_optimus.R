@@ -475,9 +475,17 @@ if(is.null(dat)){
     df <- as.data.frame(lapply(df[1:ncol(df)], min_max_norm))
     df <- as.data.frame(lapply(df[1:ncol(df)], roundfluor))
 
+    #name the columns
+    ru = rows_used
+    cu = cols_used
+    usl = user_specific_labels
+    rd = read_direction
+    sample_col_names <- dat_col_names_prime(df, ru, cu, usl, rd)
+    colnames(df) <- sample_col_names
+
     #add unique_id
     df <-unique_identifier(df)
-    colnames(df) <- c(1:(ncol(df)-1))
+    #colnames(df) <- c(1:(ncol(df)-1))
 
     return(df)
 
@@ -488,9 +496,17 @@ if(is.null(dat)){
     df <- as.data.frame(lapply(df[1:ncol(df)], min_max_norm))
     df <- as.data.frame(lapply(df[1:ncol(df)], roundfluor))
 
+    #name the columns
+    ru = rows_used
+    cu = cols_used
+    usl = user_specific_labels
+    rd = read_direction
+    sample_col_names <- dat_col_names_prime(df, ru, cu, usl, rd)
+    colnames(df) <- sample_col_names
+
     #add unique_id
     df <-unique_identifier(df)
-    colnames(df) <- c(1:(ncol(df)-1))
+    #colnames(df) <- c(1:(ncol(df)-1))
 
     return(df)
 
@@ -501,9 +517,17 @@ if(is.null(dat)){
     df <- as.data.frame(lapply(df[1:ncol(df)], min_max_norm))
     df <- as.data.frame(lapply(df[1:ncol(df)], roundfluor))
 
+    #name the columns
+    ru = rows_used
+    cu = cols_used
+    usl = user_specific_labels
+    rd = read_direction
+    sample_col_names <- dat_col_names_prime(df, ru, cu, usl, rd)
+    colnames(df) <- sample_col_names
+
     #add unique_id
     df <-unique_identifier(df)
-    colnames(df) <- c(1:(ncol(df)-1))
+    #colnames(df) <- c(1:(ncol(df)-1))
 
     return(df)
 
@@ -514,7 +538,7 @@ if(is.null(dat)){
 }
 
 normalized_fluo_dat <- normfluodat(dat, tnp = 3, cycles = 40, n)
-normalized_fluo_dat2 <- normfluodat(dat, tnp = 3, cycles = 40, n,read_direction = 'horizontal')
+normalized_fluo_dat <- normfluodat(dat, tnp = 3, cycles = 40, n, read_direction = 'horizontal')
 normalized_fluo_dat <- normfluodat(dat, tnp = 3, cycles = 40)
 
 

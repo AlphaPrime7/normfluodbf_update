@@ -83,85 +83,7 @@ clean_odd_cc <- function(df){
 
 test1 <- clean_odd_cc(lipo_dat)
 
-
 # 4.
-
-resample_dat <- function(df, tnp, cycles){
-
-  type_size <- c(1:tnp)
-  k <- c(1:tnp)
-
-  resulting_df <- data.frame()
-  for (i in 1:(nrow(df)/tnp)){
-
-    colnames(resulting_df) = NULL
-    insert_row = df[k,]
-    colnames(insert_row) = NULL
-
-    resulting_df[i,type_size] <- rbind(insert_row, resulting_df, showWarnings = FALSE)
-
-    increment = tnp
-    k <- k + increment
-
-
-  }
-  return(resulting_df)
-}
-
-resample_dat_alt <- function(df, tnp, cycles, samples_per_tnp=NULL){
-
-  k <- c(1:ncol(df))
-  type_size <- c(1:ncol(df))
-
-  resulting_df <- data.frame()
-  for (i in 1:(nrow(df)/tnp)){
-
-    insert_row = df[k,]
-
-    resulting_df[i,type_size] <- rbind(insert_row, resulting_df)
-
-    increment_k = tnp
-    k <- k + increment_k
-
-    colnames(resulting_df) <- NULL
-
-  }
-  return(resulting_df)
-}
-
-resamp_demo <- resample_dat_alt(test,3,40)
-
-# 5.
-
-resample_dat_scale <- function(df, tnp, cycles){
-  library(data.table)
-  library(dplyr)
-
-  col_list <- c()
-  for(i in 1:ncol(df)){
-    n <- "a"
-    col_list <- c(col_list,assign(paste0(n, i), as.data.frame(df[,i])) )
-  }
-
-  j_vect <- c()
-  for(j in col_list){
-    j <- as.data.frame(j)
-    j_resampled <- resample_dat(j, tnp = tnp, cycles = cycles)
-    j_dfs <- as.data.frame(j_resampled)
-    j_vect <- c(j_vect, j_dfs)
-  }
-
-  big_data = do.call(rbind, j_vect)
-  big_data = as.data.frame(big_data)
-  big_data_t = transpose(l=big_data)
-
-  big_data_t <- big_data_t %>% select_if(~ !any(is.na(.)))
-  #big_data_t <- big_data_t[ , colSums(is.na(big_data_t))==0]
-
-  return(big_data_t)
-}
-
-test_scale <- resample_dat_scale(test, tnp = 3, cycles = 40)
 
 resample_dat_scale <- function(df, tnp, cycles){
 
@@ -226,7 +148,7 @@ resample_dat_scale_alt <- function(df, tnp, cycles, samples_per_tnp=NULL){
 }
 resamp_demo <- resample_dat_scale_alt(test,3,40)
 
-# 6.
+# 5.
 
 dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
 
@@ -326,7 +248,9 @@ check_dtc
 dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
 
   if(is.null(rows_used)){
-    warning('user must enter rows_used which is a character vector with length == tnp')
+    message('User is advised to input a vector of rows used')
+    colnames_noru <- c(1:ncol(df))
+    return(colnames_noru)
   }
 
   col_names <- c()
@@ -415,7 +339,7 @@ dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_spec
 }
 
 
-# 7.
+# 6.
 
 #check proper resampled
 check_max_fluor <- function(clean_df, fun = NA){
@@ -499,7 +423,7 @@ for(i in 1:ncol(test_scale)){
 }
 
 
-# 8.
+# 7.
 
 min_max_norm <- function(x) {
   (x - min(x)) / (max(x) - min(x))
@@ -534,34 +458,15 @@ unique_identifier <- function(df){
   return(df)
 }
 
-# 10. PARENT
+# 8. PARENT
 
 normfluodat <- function(dat, tnp, cycles, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
 
-  library(data.table)
-  library(dplyr)
 
   df <- read.table(dat) #dat becomes df
-  df <- clean_odd_cc(df)
+  df <- clean_odddat(df)
 
-  col_list <- c()
-  for(i in 1:ncol(df)){
-    n <- "a"
-    col_list <- c(col_list,assign(paste0(n, i), as.data.frame(df[,i])) )
-  }
-
-  j_vect <- c()
-  for(j in col_list){
-    j <- as.data.frame(j)
-    j_resampled <- resample_dat(j, tnp = tnp, cycles = cycles)
-    j_dfs <- as.data.frame(j_resampled)
-    j_vect <- c(j_vect, j_dfs)
-  }
-
-  cleaned_dat = do.call(rbind, j_vect)
-  cleaned_dat = as.data.frame(cleaned_dat)
-  cleaned_dat_t = transpose(l=cleaned_dat)
-  cleaned_dat_t <- cleaned_dat_t %>% dplyr::select_if(~ !any(is.na(.)))
+  cleaned_dat_t <- resample_dat_scale(df,tnp=tnp,cycles=cycles)
   check_max_fluor(cleaned_dat_t)
 
   #normalize
@@ -580,9 +485,9 @@ normfluodat <- function(dat, tnp, cycles, rows_used = NULL, cols_used= NULL, use
 
   return(cleaned_dat_t)
 }
-normalized_fluo_dat <- normfluodat(dat, tnp = 3, cycles = 40, n, read_direction = 'horizontal')
+normalized_fluo_dat <- normfluodat(dat, tnp = 3, cycles = 40, n)
 
-# 11.
+# 9.
 
 yvars <- c("A1","B1","C1")
 xvar <- c("Cycle_No")

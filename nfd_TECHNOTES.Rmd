@@ -331,7 +331,7 @@ resamp_demo <- resample_dat_alt(test1,3,40)
 ## Sixth Function (Resampling samples scaled)
 
 ```{r}
-resample_dat_scale <- function(df, tnp, cycles){
+resample_dat_scale_cpuint <- function(df, tnp, cycles){
   library(data.table)
   library(dplyr)
 
@@ -359,7 +359,37 @@ resample_dat_scale <- function(df, tnp, cycles){
   return(big_data_t)
 }
 
-test_scale <- resample_dat_scale(test, tnp = 3, cycles = 40)
+test_scale <- resample_dat_scale_cpuint(test, tnp = 3, cycles = 40)
+
+resample_dat_scale_bf <- function(df, tnp, cycles){
+  library(data.table)
+  library(dplyr)
+
+  col_list <- c()
+  for(i in 1:ncol(df)){
+    col_list <- c( col_list, as.data.frame(df[,i]) )
+  }
+
+  j_vect <- c()
+  for(j in col_list){
+    j <- as.data.frame(j)
+    j_resampled <- resample_dat(j, tnp = tnp, cycles = cycles)
+    j_dfs <- as.data.frame(j_resampled)
+    j_vect <- c(j_vect, j_dfs)
+  }
+
+  big_data = do.call(rbind, j_vect)
+  big_data = as.data.frame(big_data)
+  big_data_t = transpose(l=big_data)
+
+  big_data_t <- big_data_t %>% select_if(~ !any(is.na(.)))
+  #big_data_t <- big_data_t[ , colSums(is.na(big_data_t))==0]
+
+  return(big_data_t)
+}
+
+test_scale <- resample_dat_scale_bf(test, tnp = 3, cycles = 40)
+
 
 resample_dat_alt_scale <- function(df, tnp, cycles, samples_per_tnp=NULL){
   

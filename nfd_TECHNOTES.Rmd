@@ -306,8 +306,8 @@ resamp_demo <- resample_dat_singleplex_wr(test1,3,40)
 
 resample_dat_alt <- function(df, tnp, cycles, samples_per_tnp=NULL){
 
-  k <- c(1:ncol(df))
-  type_size <- c(1:ncol(df))
+  k <- c(1:tnp)
+  type_size <- c(1:tnp)
 
   resulting_df <- data.frame()
   for (i in 1:(nrow(df)/tnp)){

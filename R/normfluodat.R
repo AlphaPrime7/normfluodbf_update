@@ -69,6 +69,7 @@ clean_odddatv2 <- function(df,tnp,cycles){
 }
 
 test <- clean_odddatv2(lipo_dat,3,40)
+col_1 <- test[1:2]
 
 # 3.
 
@@ -81,41 +82,70 @@ clean_odd_cc <- function(df){
 
 }
 
-test1 <- clean_odd_cc(lipo_dat)
+test <- clean_odd_cc(lipo_dat)
+
+# 3.5
+
+resample_dat_alt <- function(df, tnp, cycles, samples_per_tnp=NULL){
+
+  k <- c(1:tnp)
+  type_size <- c(1:tnp)
+
+  resulting_df <- data.frame()
+  for (i in 1:(nrow(df)/tnp)){
+
+    insert_row = df[k,]
+
+    resulting_df[i,type_size] <- rbind(insert_row, resulting_df)
+
+    increment_k = tnp
+    k <- k + increment_k
+
+    colnames(resulting_df) <- NULL
+
+  }
+  return(resulting_df)
+}
+alt_test <- resample_dat_alt(col_1,3,40)
 
 # 4.
 
 resample_dat_scale <- function(df, tnp, cycles){
 
-  type_size <- c(1:tnp) #k is now nseq(same kinda thing)
+  suppressWarnings({
+    type_size <- c(1:tnp) #k is now nseq(same kinda thing)
 
 
-  sample_df <- data.frame()
-  final_df <- matrix(ncol = cycles)
+    sample_df <- data.frame()
+    final_df <- matrix(ncol = cycles)
 
-  for(i in 1:ncol(df)){
-    nseq <- c(1:tnp)
+    for(i in 1:ncol(df)){
+      nseq <- c(1:tnp)
 
-    for (j in 1:(nrow(df)/tnp)){
+      for (j in 1:(nrow(df)/tnp)){
 
-      insert_row = df[nseq,i]
-      sample_df[j,type_size] <- rbind(insert_row, sample_df)
-      increment_n = tnp
-      nseq <- nseq + increment_n
+        insert_row = df[nseq,i]
+        sample_df[j,type_size] <- rbind(insert_row, sample_df)
+        increment_n = tnp
+        nseq <- nseq + increment_n
+
+      }
+      final_df <- cbind(final_df, sample_df)
+      final_df <- final_df[ , colSums(is.na(final_df))==0]
+      colnames(final_df) <- NULL
+      rownames(final_df) <- c(1:cycles)
+      final_df <- as.data.frame(final_df)
 
     }
-    final_df <- cbind(final_df, sample_df)
-    final_df <- final_df[ , colSums(is.na(final_df))==0]
-    colnames(final_df) <- NULL
-    rownames(final_df) <- c(1:cycles)
-    final_df <- as.data.frame(final_df)
+    #return(sample_df)
+    return(final_df)
 
-  }
-  #return(sample_df)
-  return(final_df)
+  })
 }
 
 test_scale <- resample_dat_scale(test, tnp = 3, cycles = 40)
+test_scale <- resample_dat_scale(test, tnp = 3, cycles = 40)
+alt_test_wow <- resample_dat_scale(col_1,3,40)
 
 resample_dat_scale_alt <- function(df, tnp, cycles, samples_per_tnp=NULL){
 
@@ -147,8 +177,50 @@ resample_dat_scale_alt <- function(df, tnp, cycles, samples_per_tnp=NULL){
   return(final_df)
 }
 resamp_demo <- resample_dat_scale_alt(test,3,40)
+alt_test_wow <- resample_dat_alt(col_1,3,40)
+alt_test_wow <- resample_dat_scale_alt(col_1,3,40)
 
 # 5.
+
+dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL){
+  col_names <- c()
+  if(!is.null(cols_used)){
+    normal_sequence = c(min(cols_used):max(cols_used))
+  } else {
+    normal_sequence = NULL
+  }
+
+  if(!is.null(user_specific_labels)){
+    return(user_specific_labels)
+
+  } else if(is.null(cols_used)){
+    for(i in 1:ncol(df)){
+      col_names <- c(col_names, paste0(rows_used,i)) #normal (left to right start at position 1 of plate (A1))
+    }
+    return(col_names[1:ncol(df)])
+
+  } else if(!is.null(rows_used) && !is.null(cols_used) && ncol(df) == length(cols_used)*length(rows_used) && length(cols_used) <= length(normal_sequence) ){
+
+    for(i in cols_used){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    return(col_names[1:ncol(df)])
+
+  } else if(is.null(user_specific_labels) && ncol(df) < length(cols_used)*length(rows_used) || length(cols_used) < length(normal_sequence) ){
+    for(i in cols_used){
+      col_names <- c(col_names, paste0(rows_used,i))
+    }
+    if(is.null(user_specific_labels)){
+      print(col_names[1:(length(cols_used)*length(rows_used))])
+      print('From the printed above list enter the columns used; must match the sample positions on the plate;')
+      choose_cols_used=scan(what=character(), n=ncol(df))
+      print(choose_cols_used)
+      return(as.vector(choose_cols_used))
+    } else{
+      return(user_specific_labels)
+    }
+  }
+}
 
 dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
 
@@ -242,7 +314,8 @@ dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_spec
 }
 
 
-check_dtc <- dat_col_names_prime(test, c('A','B','C'),read_direction = 'horizontal')
+check_dtc <- dat_col_names_prime(test, c('A','B','C'))
+check_dtc <- dat_col_names_prime(test_scale, c('A','B','C'), c(1,2,3,4,5,6,7,8,9,10,11,12))
 check_dtc
 
 dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
@@ -338,7 +411,57 @@ dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_spec
   }
 }
 
+dat_col_names_horizontal <- function(df, rows_used=NULL,cols_used=NULL){
 
+  cols_sort <- c()
+  cols_sort_fit <- c()
+
+  if(!is.null(cols_used) && !is.null(rows_used)){
+
+    for(i in rows_used){
+      cols_sort <- append(cols_sort, paste0(i,cols_used))
+    }
+
+    range <- 1:(length(df)/length(rows_used) )
+
+    for(j in rows_used){
+      increment = length(cols_sort)/length(rows_used)
+      cols_sort_fit <- append(cols_sort_fit, cols_sort[range])
+      range <- range + increment
+    }
+    return(cols_sort_fit)
+
+  } else if(is.null(cols_used) && !is.null(rows_used)){
+
+    colnames_nocu <- c(1:ncol(df) )
+    for(i in rows_used){
+      cols_sort <- append(cols_sort, paste0(i,colnames_nocu))
+    }
+
+    range <- 1:( length(cols_sort)/ (length(rows_used)*length(rows_used)) )
+
+    for(j in rows_used){
+      increment = length(cols_sort)/length(rows_used)
+      cols_sort_fit <- append(cols_sort_fit, cols_sort[range])
+      range <- range + increment
+    }
+    return(cols_sort_fit)
+
+  } else if(is.null(cols_used) && is.null(rows_used)){
+
+    colnames_nocu <- c(1:ncol(df))
+    return(colnames_nocu)
+  }
+
+}
+n <- c('A','B','C','D')
+n <- c('A','B','C')
+q <- c(1,2,3,4,5,6,7,8,9,10,11,12)
+test_horlabel <- dat_col_names_horizontal(test_scale,n)
+test_horlabel <- dat_col_names_prime(test_scale,n)
+test_verlabel <- dat_col_names_prime(test_scale,n)
+colnames(test_scale) <- test_verlabel
+test_horlabel
 # 6.
 
 #check proper resampled
@@ -355,13 +478,14 @@ check_max_fluor <- function(clean_df, fun = NA){
         message(c(emoji('pig'), emoji('camel')))
         message(paste("YIKES, value > 2^15, Watch in future experimental designs",'column:', j , 'row:', i))
       } else if ( clean_df[i,j] <= (2^11) && is.na(clean_df[i,j]) != nofun ){
-        message(c(emoji('pig'), emoji('camel')))
+        message(c(emoji('pig'), emoji('camel'), emoji('lion')))
         message(paste("YIKES, value < 2^11, Watch in future experimental designs",'column:', j , 'row:', i))
       }
     }
   }
 }
 check_max_fluor(test_scale)
+check_max_fluor(test)
 
 #checks for NAs
 check_max_fluor_na <- function(clean_df, fun = NA){
@@ -396,7 +520,7 @@ check_max_fluor_raw <- function(clean_df, fun = NA){
       if( (clean_df[i,j] >= 2^15 || clean_df[i,j] <= 2^11)  && is.na(clean_df[i,j]) != nofun ){
         warning(c(emoji('pig'), emoji('camel')))
         warning("Crikee, some values in your original data violate thresholds")
-
+        warning(paste(j,i))
       } else{
         #nothing
       }
@@ -457,10 +581,11 @@ unique_identifier <- function(df){
   }
   return(df)
 }
+test_scale <- unique_identifier(test_scale)
 
 # 8. PARENT
 
-normfluodat <- function(dat, tnp, cycles, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
+normfluodat <- function(dat, tnp, cycles, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL){
 
 
   df <- read.table(dat) #dat becomes df
@@ -476,8 +601,7 @@ normfluodat <- function(dat, tnp, cycles, rows_used = NULL, cols_used= NULL, use
   ru = rows_used
   cu = cols_used
   usl = user_specific_labels
-  rd = read_direction
-  sample_col_names <- dat_col_names_prime(cleaned_dat_t, ru, cu, usl, rd)
+  sample_col_names <- dat_col_names_prime(cleaned_dat_t, ru, cu, usl)
   colnames(cleaned_dat_t) <- sample_col_names
 
   #add unique_id
@@ -485,6 +609,7 @@ normfluodat <- function(dat, tnp, cycles, rows_used = NULL, cols_used= NULL, use
 
   return(cleaned_dat_t)
 }
+n <- c("A","B","C")
 normalized_fluo_dat <- normfluodat(dat, tnp = 3, cycles = 40, n)
 
 # 9.
@@ -506,12 +631,13 @@ gg_plot_triplets <- function(df, x, y_list, xlim, ylim){
     geom_line(aes(y=.data[[y_list[1]]], color="Test"), size = 0.8) +
     geom_line(aes(y=.data[[y_list[2]]], color="Negative Control"),size = 0.8) +
     geom_line(aes(y=.data[[y_list[3]]], color="Positivetive Control"), size = 0.8) +
-    dark_mode()+  coord_cartesian(xlim = xlim) +  coord_cartesian(ylim=ylim) +
+    dark_mode()+
     labs(title = 'NavAb Liposome Flux Assay',
          x = 'Cycle_no', y='Normalized Fluorescence', color='Sample Type')
 }
 
 gg_plot_triplets(normalized_fluo_dat,x=xvar,y_list=yvars,xlim=xl,ylim=yl)
+gg_plot_triplets(test_scale,x=xvar,y_list=yvars,xlim=xl,ylim=yl)
 
 # 'Cycle_no'
 # 'Normalized Fluorescence'

@@ -11,17 +11,99 @@ lipo_dat <- read.table(dat)
 
 #SUBORDINATE FUNCTIONS
 
-# 1. Clean odd dats (PRIME)
+# 1. Standalone sub function for dat files with an idied sequence but this is an anomaly so the function for nonseqdats is the only one used here
+
+clean_evendat <- function(df){
+  for (i in (4 * (1:(nrow(df)/4)))){
+    k <- seq(4)
+    skip_values = 8 * seq(40)
+    if(i %in% skip_values) next
+    df[c(k+i,i),] <- NA
+  }
+  df <- na.omit(df)
+  return(df)
+}
+
+# 2. Clean odd dats (PRIME)
 
 #dependency
 comma_cleaner <- function(comma_df){
 
-    cols_to_becleaned <- c(colnames(comma_df))
-    comma_df[ , cols_to_becleaned] <- lapply(comma_df[ , cols_to_becleaned],  # Convert data
-                                             function(x){ as.numeric(as.character(gsub(",", "", x))) })
-    return(as.data.frame(comma_df))
+  cols_to_becleaned <- c(colnames(comma_df))
+  comma_df[ , cols_to_becleaned] <- lapply(comma_df[ , cols_to_becleaned],  # Convert data
+                                           function(x){ as.numeric(as.character(gsub(",", "", x))) })
+  return(as.data.frame(comma_df))
 }
 comma_cleaner(test)
+
+#from the package as a damaged good
+clean_odddat <- function(df){
+  special_chars <- c('-,','-' )
+  for (i in 1:nrow(df)){
+    for (j in 1:ncol(df)){
+      if(special_chars[1] %in% df[i,j] || special_chars[2] %in% df[i,j]){
+        df[i,j] <- NA
+      }
+    }
+  }
+  na_df <- df
+
+  comma_df <- na_df
+  nocomma_df <- comma_cleaner(comma_df)
+  nocomma_df <- nocomma_df[rowSums(is.na(nocomma_df)) != ncol(nocomma_df), ]
+
+  return(nocomma_df)
+}
+
+clean_odddat <- function(df, tnp, cycles){
+  special_chars <- c('-,','-' )
+  for (i in 1:nrow(df)){
+    for (j in 1:ncol(df)){
+      if(special_chars[1] %in% df[i,j] || special_chars[2] %in% df[i,j]){
+        df[i,j] <- NA
+      }
+    }
+  }
+  nona_rows_df <- df
+
+  comma_df <- nona_rows_df
+  nocomma_df <- comma_cleaner(comma_df)
+  nocomma_df <- nocomma_df[rowSums(is.na(nocomma_df)) != ncol(nocomma_df), ]
+  rownames(nocomma_df) <- c(1:(tnp*cycles))
+
+  return(nocomma_df)
+}
+
+clean_odddat <- function(df){
+
+  special_chars <- c('-,','-' )
+  empty_df <- data.frame()
+  for (i in 1:nrow(df)){
+    for (j in 1:ncol(df)){
+      if( special_chars[1] %in% df[i,j] || special_chars[2] %in% df[i,j] ){
+        df[i,j] <- NA
+      }
+    }
+  }
+  nona_rows_df <- df
+
+
+  if(ncol(df) == 1){
+    comma_df <- nona_rows_df
+    comma_df <- comma_df[rowSums(is.na(comma_df)) != ncol(comma_df), ]
+    comma_df = as.numeric(as.character(gsub(",", "", comma_df)))
+
+    return(as.data.frame(comma_df))
+  } else {
+    comma_df <- nona_rows_df
+    nocomma_df <- comma_cleaner(comma_df)
+    nocomma_df <- nocomma_df[rowSums(is.na(nocomma_df)) != ncol(nocomma_df), ]
+    nocomma_df <- as.data.frame(nocomma_df)
+
+    return(nocomma_df)
+  }
+
+}
 
 clean_odddat <- function(df,tnp,cycles){
 
@@ -55,16 +137,13 @@ clean_odddat <- function(df,tnp,cycles){
   }
 
 }
+
 #test
 test <- clean_odddat(lipo_dat)
 test <- clean_odddat(lipo_dat)
 
-#2.
-
-actual_cols_used <- function(dat){
-
-  df <- read.table(dat) #dat becomes df
-  df <- clean_odddat(df)
+#2.5
+actual_cols_used <- function(df){
   colnames(df) <- c(1:ncol(df))
   acu <- names(which(colSums(!is.na(df)) > 0))
   acu <- as.numeric(as.vector(acu))
@@ -75,7 +154,30 @@ actual_cols_used <- function(dat){
 #test
 acutest <- actual_cols_used(test)
 
-# 3
+
+for(i in 1:nrow(test)){
+  for (j in 1:ncol(test)) {
+    if(j == 1){
+      test[3,j] <- NA
+    }
+
+  }
+}
+
+# 3.
+
+clean_odd_cc <- function(df){
+
+  df <- comma_cleaner(df)
+  df <- df[rowSums(is.na(df)) != ncol(df), ]
+
+  return(as.data.frame(df))
+
+}
+
+test <- clean_odd_cc(lipo_dat)
+
+# 3.5
 
 resample_dat_alt <- function(df, tnp, cycles, samples_per_tnp=NULL){
 
@@ -97,7 +199,7 @@ resample_dat_alt <- function(df, tnp, cycles, samples_per_tnp=NULL){
   }
   return(resulting_df)
 }
-alt_test <- resample_dat_alt(test,1,40)
+alt_test <- resample_dat_alt(test,3,40)
 
 resample_dat <- function(df, tnp, cycles){
 
@@ -121,10 +223,11 @@ resample_dat <- function(df, tnp, cycles){
   return(resulting_df)
 }
 
-sc_resample <- resample_dat(test,1,40)
+sc_resample <- resample_dat(test,3,40)
+
 
 # 4.
-#retain nas
+
 resample_dat_scale <- function(df, tnp, cycles){
 
   suppressWarnings({
@@ -140,7 +243,7 @@ resample_dat_scale <- function(df, tnp, cycles){
 
 
       sample_df <- data.frame()
-      final_df <- matrix(nrow = cycles)
+      final_df <- matrix(ncol = cycles)
 
       for(i in 1:ncol(df)){
         nseq <- c(1:tnp)
@@ -154,9 +257,7 @@ resample_dat_scale <- function(df, tnp, cycles){
 
         }
         final_df <- cbind(final_df, sample_df)
-        #final_df <- final_df[ , colSums(!is.na(final_df))>=1] #retain nas
-        #final_df <- final_df[,which(!apply(final_df,2,FUN = function(x){all(x == 0)}))]
-        final_df <- final_df[, !sapply(final_df, function(x) all(x == 0))]
+        final_df <- final_df[ , colSums(!is.na(final_df))>=1] #retain nas
         #rownames(final_df) <- c(1:cycles)
         final_df <- as.data.frame(final_df)
         colnames(final_df) <- NULL
@@ -172,9 +273,241 @@ resample_dat_scale <- function(df, tnp, cycles){
 
 test_scale <- resample_dat_scale(test, tnp = 1, cycles = 40)
 test_scale <- resample_dat_scale(test, tnp = 3, cycles = 40)
-test_scale_stand <- resample_dat_scale_naretainer(test, tnp = 1, cycles = 40)
+test_scale <- as.data.frame(lapply(test_scale[1:ncol(test_scale)], min_max_norm_percent))
+alt_test_wow <- resample_dat_scale(col_1,3,40)
 
-# 5
+resample_dat_scale <- function(df, tnp, cycles){
+  library(data.table)
+  library(dplyr)
+
+  col_list <- c()
+  for(i in 1:ncol(df)){
+    col_list <- c(col_list, as.data.frame(df[,i]) )
+  }
+
+  j_vect <- c()
+  for(j in col_list){
+    j <- as.data.frame(j)
+    j_resampled <- resample_dat(j, tnp = tnp, cycles = cycles)
+    j_dfs <- as.data.frame(j_resampled)
+    j_vect <- c(j_vect, j_dfs)
+    #j_vect <- c(j_vect, j_dfs)
+  }
+
+  big_data = do.call(rbind, j_vect)
+  big_data = as.data.frame(big_data)
+  big_data_t = transpose(l=big_data)
+
+  #big_data_t <- big_data_t %>% select_if(~ !any(is.na(.)))
+  big_data_t <- big_data_t[ , colSums(is.na(big_data_t))==0]
+  big_data_t <- as.data.frame(big_data_t)
+
+  return(big_data_t)
+}
+
+#NA retainer for update
+resample_dat_scale_naretainer <- function(df, tnp, cycles){
+  library(data.table)
+  library(dplyr)
+
+  col_list <- c()
+  for(i in 1:ncol(df)){
+    col_list <- c(col_list, as.data.frame(df[,i]) )
+  }
+
+  j_vect <- c()
+  for(j in col_list){
+    j <- as.data.frame(j)
+    j_resampled <- resample_dat(j, tnp = tnp, cycles = cycles)
+    j_dfs <- as.data.frame(j_resampled)
+    j_vect <- c(j_vect, j_dfs)
+    #j_vect <- c(j_vect, j_dfs)
+  }
+
+  big_data = do.call(rbind, j_vect)
+  big_data = as.data.frame(big_data)
+  big_data_t = transpose(l=big_data)
+
+  big_data_t <- big_data_t[,which(!apply(big_data_t,2,FUN = function(x){all(x == 0)}))]
+  #big_data_t <-  big_data_t[, !sapply(big_data_t, function(x) all(x == 0))]
+  #big_data_t <- big_data_t[ , colSums(!is.na(big_data_t))>=1]
+  big_data_t <- as.data.frame(big_data_t)
+
+  return(big_data_t)
+}
+
+test_scale_stand <- resample_dat_scale_naretainer(test, tnp = 3, cycles = 40)
+
+
+#ALT-bf_na
+resample_dat_scale_alt_cpuint <- function(df, tnp, cycles){
+
+  suppressWarnings({
+
+    if(ncol(df) == 1){
+
+      df1 <- resample_dat_alt(df,tnp,cycles)
+      return(df1)
+
+    } else {
+
+      row_list <- c()
+      for(i in 1:nrow(df)){
+        row_list <- c(row_list, as.data.frame(df[i,]) )
+      }
+
+      j_vect <- c()
+      for(j in row_list){
+        j <- as.data.frame(j)
+        j_resampled <- resample_dat_alt(j, tnp = tnp, cycles = cycles)
+        j_dfs <- as.data.frame(j_resampled)
+        j_vect <- c(j_vect, j_dfs)
+      }
+
+      big_data = do.call(rbind, j_vect)
+      big_data = as.data.frame(big_data)
+      big_data_t = transpose(l=big_data)
+
+      big_data_t <- as.data.frame(big_data_t)
+      colnames(big_data_t) <- NULL
+
+      num_samples = ncol(big_data_t)/cycles
+      numrows = ncol(big_data_t)/num_samples
+      k <- c(1:num_samples)
+      type_size <- c(1:num_samples)
+
+      resulting_df <- data.frame()
+      for (i in 1:numrows){
+
+        insert_col = big_data_t[,k]
+        colnames(insert_col) <- c(1:num_samples)
+
+        resulting_df[i,type_size] <- rbind(insert_col, resulting_df)
+        increment_k = num_samples
+        k <- k + increment_k
+        colnames(resulting_df) <- c(1:num_samples)
+
+      }
+
+      resulting_df <- resulting_df %>% dplyr::select_if(~ !any(is.na(.)))
+      #resulting_df <- resulting_df[ , colSums(!is.na(resulting_df))>=1]
+      return(resulting_df)
+
+
+    }
+
+  })
+
+}
+
+test_scale <- resample_dat_scale_alt_cpuint(test, tnp = 3, cycles = 40)
+test_scale_comp <- resample_dat_scale_alt_cpuint(test, tnp = 1, cycles = 40)
+
+#NONE-OUT OF PKG
+resample_dat_scale_altv2 <- function(df, tnp, cycles){
+
+  suppressWarnings({
+    library(data.table)
+    library(dplyr)
+
+    row_list <- c()
+    for(i in 1:nrow(df)){
+      row_list <- c(row_list, as.data.frame(df[i,]) )
+    }
+    row_list = as.data.frame(row_list)
+    big_data_t <- row_list
+    colnames(big_data_t) <- NULL
+
+    num_samples = ncol(big_data_t)/(cycles)
+    numrows = ncol(big_data_t)/(num_samples)
+
+    k <- c(1:num_samples)
+    type_size <- c(1:num_samples)
+
+    resulting_df <- data.frame()
+    for (i in 1:numrows){
+
+      if(ncol(df)==1){
+        insert_col = big_data_t[,k]
+        #colnames(insert_col) <- c(1:num_samples)
+
+        resulting_df[i,type_size] <- rbind(insert_col, resulting_df)
+        increment_k = num_samples
+        k <- k + increment_k
+        #colnames(resulting_df) <- c(1:num_samples)
+      } else {
+        insert_col = big_data_t[,k]
+        colnames(insert_col) <- c(1:num_samples)
+
+        resulting_df[i,type_size] <- rbind(insert_col, resulting_df)
+        increment_k = num_samples
+        k <- k + increment_k
+        colnames(resulting_df) <- c(1:num_samples)
+
+      }
+    }
+
+    resulting_df <- resulting_df[ , colSums(!is.na(resulting_df))>=1]
+    #resulting_df <- resulting_df %>% select_if(~ !any(is.na(.)))
+    return(as.data.frame(resulting_df))
+
+  })
+
+}
+test_scale <- resample_dat_scale_altv2(test, tnp = 3, cycles = 40)
+test_scale_comp <- resample_dat_scale_altv2(test, tnp = 1, cycles = 40)
+
+#bfv
+resample_dat_scale_altv1 <- function(df, tnp, cycles){
+
+  suppressWarnings({
+
+    if(ncol(df) == 1){
+
+      df1 <- resample_dat_alt(df,tnp,cycles)
+      return(df1)
+
+    } else{
+
+      row_list <- c()
+      for(i in 1:nrow(df)){
+        row_list <- c(row_list, as.data.frame(df[i,]) )
+      }
+      row_list = as.data.frame(row_list)
+      big_data_t <- row_list
+      colnames(big_data_t) <- NULL
+
+      num_samples = ncol(big_data_t)/(cycles)
+      numrows = ncol(big_data_t)/(num_samples)
+
+      k <- c(1:num_samples)
+      type_size <- c(1:num_samples)
+
+      resulting_df <- data.frame()
+      for (i in 1:numrows){
+
+        insert_col = big_data_t[,k]
+        colnames(insert_col) <- c(1:num_samples)
+
+        resulting_df[i,type_size] <- rbind(insert_col, resulting_df)
+        increment_k = num_samples
+        k <- k + increment_k
+        colnames(resulting_df) <- c(1:num_samples)
+
+      }
+
+      resulting_df <- resulting_df %>% dplyr::select_if(~ !any(is.na(.)))
+      return(as.data.frame(resulting_df))
+
+    }
+
+  })
+
+}
+
+test_scale <- resample_dat_scale_altv1(test, tnp = 3, cycles = 40)
+test_scale_comp <- resample_dat_scale_altv1(test, tnp = 1, cycles = 40)
+
 
 resample_dat_scale_alt <- function(df, tnp, cycles){
 
@@ -216,50 +549,7 @@ resample_dat_scale_alt <- function(df, tnp, cycles){
 }
 resamp_demo <- resample_dat_scale_alt(test,1,40)
 
-resample_dat_scale_altv2 <- function(df, tnp, cycles){
-
-  suppressWarnings({
-    library(data.table)
-    library(dplyr)
-
-    row_list <- c()
-    for(i in 1:nrow(df)){
-      row_list <- c(row_list, as.data.frame(df[i,]) )
-    }
-    row_list = as.data.frame(row_list)
-    big_data_t <- row_list
-    colnames(big_data_t) <- NULL
-
-    num_samples = ncol(big_data_t)/(cycles)
-    numrows = ncol(big_data_t)/(num_samples)
-
-    k <- c(1:num_samples)
-    type_size <- c(1:num_samples)
-
-    resulting_df <- data.frame()
-    for (i in 1:numrows){
-
-      insert_col = big_data_t[,k]
-      colnames(insert_col) <- c(1:num_samples)
-
-      resulting_df[i,type_size] <- rbind(insert_col, resulting_df)
-      increment_k = num_samples
-      k <- k + increment_k
-      colnames(resulting_df) <- c(1:num_samples)
-
-    }
-
-    resulting_df <- resulting_df %>% select_if(~ !any(is.na(.)))
-    return(resulting_df)
-
-  })
-
-}
-
-test_scale <- resample_dat_scale_altv2(test, tnp = 3, cycles = 40)
-alt_test_wow <- resample_dat_alt(test,3,40)
-
-# 6.
+# 5.
 
 dat_col_names_prime <- function(df, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL){
   col_names <- c()
@@ -402,10 +692,6 @@ check_dtc
 dat_col_names_prime <- function(decoy, df, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL, read_direction = NULL){
 
   acutest <- actual_cols_used(decoy)
-
-  if(is.null(cols_used)){
-    cols_used = acutest
-  }
   if(is.null(rows_used)){
     warning('user must enter rows_used which is a character vector with length == tnp')
     colnames_nocu <- c(1:ncol(df))
@@ -822,22 +1108,22 @@ test_scale <- unique_identifier(test_scale)
 
 normfluodat <- function(dat, tnp, cycles, rows_used = NULL, cols_used= NULL, user_specific_labels = NULL){
 
+
   df <- read.table(dat) #dat becomes df
   df <- clean_odddat(df)
 
   cleaned_dat_t <- resample_dat_scale_alt(df,tnp=tnp,cycles=cycles)
+  check_max_fluor(cleaned_dat_t)
+
+  #normalize
+  cleaned_dat_t <- as.data.frame(lapply(cleaned_dat_t[1:ncol(cleaned_dat_t)], min_max_norm))
+
   #name the columns
   ru = rows_used
   cu = cols_used
   usl = user_specific_labels
-  sample_col_names <- dat_col_names_prime(decoy=dat, cleaned_dat_t, ru, cu, usl)
+  sample_col_names <- dat_col_names_prime(cleaned_dat_t, ru, cu, usl)
   colnames(cleaned_dat_t) <- sample_col_names
-
-  #normalize
-  cleaned_dat_t <- cleaned_dat_t %>% dplyr::select_if(~ !any(is.na(.)))
-  check_max_fluor(cleaned_dat_t)
-
-  cleaned_dat_t <- as.data.frame(lapply(cleaned_dat_t[1:ncol(cleaned_dat_t)], min_max_norm))
 
   #add unique_id
   cleaned_dat_t <-unique_identifier(cleaned_dat_t)

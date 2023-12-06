@@ -4,9 +4,10 @@ dat = Sys.getenv('first_dat')
 dat = Sys.getenv('third_dat')
 dat = Sys.getenv('scnd_dat')
 dat = "C:/Users/GrandProf/Downloads/Repos_4cleanup/Repositories_AP7/On_GitHub/normfluodbf_update/dat/dat_6.dat"
+dat = "C:/Users/GrandProf/Downloads/Repos_4cleanup/Repositories_AP7/On_GitHub/normfluodbf_update/dat/dat_7.dat"
 dat = "C:/Users/GrandProf/Downloads/Repos_4cleanup/Repositories_AP7/On_GitHub/normfluodbf_update/dat/dat_4.dat"
 dat = "C:/Users/GrandProf/Downloads/Repos_4cleanup/Repositories_AP7/On_GitHub/normfluodbf_update/dat/dat_5.dat"
-dat = system.file("extdata", "dat_4.dat", package = "normfluodbf", mustWork = TRUE)
+dat = system.file("extdata", "dat_7.dat", package = "normfluodbf", mustWork = TRUE)
 lipo_dat <- read.table(dat)
 
 #SUBORDINATE FUNCTIONS
@@ -23,7 +24,7 @@ comma_cleaner <- function(comma_df){
 }
 comma_cleaner(test)
 
-clean_odddat <- function(df,tnp,cycles){
+clean_odddat <- function(df){
 
   special_chars <- c('-,','-' )
   empty_df <- data.frame()
@@ -46,7 +47,7 @@ clean_odddat <- function(df,tnp,cycles){
     return(as.data.frame(comma_df))
   } else {
     comma_df <- nona_rows_df
-    nocomma_df <- nocomma_df[rowSums(is.na(nocomma_df)) != ncol(nocomma_df), ]
+    comma_df <- comma_df[rowSums(is.na(comma_df)) != ncol(comma_df), ]
     nocomma_df <- comma_cleaner(comma_df)
     #nocomma_df <- as.numeric(nocomma_df)
     nocomma_df <- as.data.frame(nocomma_df)
@@ -55,8 +56,45 @@ clean_odddat <- function(df,tnp,cycles){
   }
 
 }
+
+clean_odddat_optimus <- function(df){
+
+  suppressWarnings({
+
+    special_chars <- c('-,','-' )
+    empty_df <- data.frame()
+    for (i in 1:nrow(df)){
+      for (j in 1:ncol(df)){
+        if( special_chars[1] %in% df[i,j] || special_chars[2] %in% df[i,j] ){
+          df[i,j] <- NA
+        }
+      }
+    }
+    nona_rows_df <- df
+
+
+    if(ncol(df) == 1){
+      comma_df <- nona_rows_df
+      comma_df <- comma_df[rowSums(is.na(comma_df)) != ncol(comma_df), ]
+      nocomma_df = as.numeric(as.character(gsub(",", "", comma_df)))
+
+      return(as.data.frame(nocomma_df))
+
+    } else {
+      comma_df <- nona_rows_df
+      comma_df <- comma_df[rowSums(is.na(comma_df)) != ncol(comma_df), ]
+      nocomma_df <- comma_cleaner(comma_df)
+      #nocomma_df <- as.numeric(nocomma_df)
+      nocomma_df <- as.data.frame(nocomma_df)
+
+      return(nocomma_df)
+    }
+
+  })
+
+}
 #test
-test <- clean_odddat(lipo_dat)
+test <- clean_odddat_optimus(lipo_dat)
 test <- clean_odddat(lipo_dat)
 
 #2.
@@ -77,12 +115,13 @@ acutest <- actual_cols_used(test)
 
 # 3
 
-resample_dat_alt <- function(df, tnp, cycles, samples_per_tnp=NULL){
+resample_dat_alt <- function(df, tnp, cycles){
 
   k <- c(1:tnp)
   type_size <- c(1:tnp)
 
   resulting_df <- data.frame()
+
   for (i in 1:(nrow(df)/tnp)){
 
     insert_row = df[k,]
@@ -95,9 +134,95 @@ resample_dat_alt <- function(df, tnp, cycles, samples_per_tnp=NULL){
     #colnames(resulting_df) <- NULL
 
   }
-  return(resulting_df)
+  #rownames(resulting_df) = c(1:cycles)
+  return(as.vector(resulting_df))
 }
-alt_test <- resample_dat_alt(test,1,40)
+
+#vectorized approach
+
+resample_dat_alt_vect <- function(df, tnp, cycles, output=NULL){
+
+  library(dplyr)
+  df_vector = as.vector(df)
+
+  for (i in (1:length(df_vector)) ){
+    list_len = i
+    vec_len = length(df_vector[[i]])
+  }
+  vec_len
+  list_len
+
+  #all_vals = vec_len * length(df_vector)
+  #k = df_vector[[j]] %>% .[c(j:tnp)]
+  #vec_len
+
+  kth = 1
+
+  #k
+  k = df_vector[[list_len]] %>% .[c(kth)]
+
+  #resulting_vec[1:tnp] <- c(list(), 'NULL')
+  resulting_vec <- vector(mode = 'list', length = tnp)
+
+  for(j in 1:(vec_len/tnp)){
+
+    for (l in 1:length(resulting_vec)){
+
+      inc_tnp_by = tnp
+      inc_kth_by = 1
+
+      k = df_vector[[list_len]] %>% .[c(kth)]
+
+      resulting_vec[[l]] = c(resulting_vec[[l]], k)
+
+      #append(resulting_vec[j], k)
+
+      kth = kth + inc_kth_by
+      #tnp = tnp + inc_tnp_by
+
+    }
+    #return( as.data.frame(resulting_vec))
+  }
+  if(is.null(output)|| output == 'df' ){
+    resulting_df = as.data.frame(resulting_vec)
+    colnames(resulting_df) = rep('V', times = ncol(resulting_df))
+    return(resulting_df)
+  } else {
+    return(resulting_vec)
+  }
+
+}
+
+
+library(dplyr)
+col1 = test[1]
+col2 = test[2]
+resample_vectorized = lapply(test[1:ncol(test)], resample_dat_alt_vect, tnp = 3, cycles = 40)
+resample_vectorized = lapply(col1[1:ncol(col1)], resample_dat_alt_vect, tnp = 3, cycles = 40)
+
+alt_test <- resample_dat_alt_vect(col1,3,40)
+alt_test <- resample_dat_alt_vect(col2,3,40)
+alt_test <- resample_dat_alt_vect(test,3,40)
+alt_test <- resample_dat_alt_vect(test,1,40)
+alt_test <- as.data.frame(alt_test)
+colnames(alt_test) = c('a','b','c')
+alt_test <- resample_dat_alt_vect(test,3,40)
+
+totals = function(){
+  for (i in (1:length(col2)) ){
+    total = as.vector(length(col2[[i]]))
+    k = col2[[i]] %>% .[c(3)]
+  }
+  print(total * length(col2))
+  print(k)
+}
+
+totals()
+
+
+library(dplyr)
+resample_vectorized = lapply(col1, resample_dat_alt, tnp = 3, cycles = 40)
+resample_vectorized <- lapply(col1, resample_dat_alt, tnp = 3, cycles = 40) %>% bind_cols()
 
 resample_dat <- function(df, tnp, cycles){
 
@@ -121,7 +246,7 @@ resample_dat <- function(df, tnp, cycles){
   return(resulting_df)
 }
 
-sc_resample <- resample_dat(test,1,40)
+sc_resample <- resample_dat(test,3,40)
 
 # 4.
 #retain nas
@@ -214,7 +339,7 @@ resample_dat_scale_alt <- function(df, tnp, cycles){
   }
 
 }
-resamp_demo <- resample_dat_scale_alt(test,1,40)
+resamp_demo <- resample_dat_scale_alt(test,3,40)
 
 resample_dat_scale_altv2 <- function(df, tnp, cycles){
 
@@ -942,3 +1067,126 @@ yl <- c(0,1)
 yl_log <- c(-2,0)
 gg_plot_triplets(trial1_scale,x=xvar,y_list=yvars,xlim=xl,ylim=yl)
 gg_plot_triplets(trial1_scale,xlim=xl,ylim=yl)
+
+time_attribute = function(interval= NULL, first_end = NULL, pause_duration=NULL, end_time=NULL, cycles=NULL, time_unit = c('cycles', 'minutes')){
+
+  start_time = 0
+
+  if(pause_duration < interval){
+    pause_duration = interval
+  } else{
+    pause_duration = pause_duration
+  }
+
+  # if('cycles' %in% time_unit || is.null(time_unit) && !is.null(first_end))
+
+  if(!is.null(first_end) && !is.null(end_time)){
+
+    if('cycles' %in% time_unit || is.null(time_unit)){
+
+      first_end = (first_end-1) * interval
+
+      #before_pause
+      first_end = seq(from=start_time,to=first_end,by=interval)
+
+      #new sequence start
+      timer_resume = tail(first_end,1)  + pause_duration
+
+      #after_pause
+      after_pause = seq(from=timer_resume,to=end_time,by=interval)
+
+      #final time attribute
+      assay_time = append(first_end,after_pause)
+      assay_time = assay_time[1:cycles]
+      assay_time = as.data.frame(assay_time)
+      colnames(assay_time) = c('Time')
+
+      return(assay_time)
+
+    } else if('minutes' %in% time_unit || !is.null(time_unit)) {
+      #before_pause
+      interval = interval * 60
+
+      first_end = seq(from=start_time*60,to=first_end*60,by=interval)
+
+      first_end = first_end[-length(first_end)]
+
+      #new sequence start
+      timer_resume = tail(first_end,1)  + pause_duration*60
+
+      #after_pause
+      after_pause = seq(from=timer_resume,to=end_time*60,by=interval)
+
+      #final time attribute
+      assay_time = append(first_end,after_pause)
+      assay_time = assay_time[1:cycles]
+      assay_time = as.data.frame(assay_time)
+      colnames(assay_time) = c('Time')
+
+      return(assay_time)
+
+    }
+  } else if(is.null(first_end) && is.null(pause_duration) && is.null(end_time) && !is.null(cycles) && is.null(time_unit)){
+
+    assay_time = seq(from=start_time,  by = interval, along.with=seq(cycles))
+    return(assay_time)
+
+  }
+
+}
+
+#' time_test = time_attribute(0.5,4,2.26,21.26,40)
+#' time_test = time_attribute(1,7,2.26,41,40,)
+
+
+time_attribute = function(interval= NULL, first_end = NULL, pause_duration=NULL, end_time=NULL, cycles=NULL){
+
+  start_time = 0
+
+  if(is.null(interval)){
+    warning('Enter the cycle interval in seconds as setup in the machine')
+  }
+
+  if(pause_duration < interval || is.null(pause_duration)){
+    pause_duration = interval
+  } else{
+    pause_duration = pause_duration
+  }
+
+  # if('cycles' %in% time_unit || is.null(time_unit) && !is.null(first_end))
+
+  if(!is.null(first_end) && !is.null(end_time) && !is.null(pause_duration)){
+
+    first_end = (first_end-1) * interval
+
+    #before_pause
+    first_end = seq(from=start_time,to=first_end,by=interval)
+
+    #new sequence start
+    timer_resume = tail(first_end,1)  + pause_duration
+
+    #after_pause
+    after_pause = seq(from=timer_resume,to=end_time,by=interval)
+
+    #final time attribute
+    assay_time = append(first_end,after_pause)
+    assay_time = assay_time[1:cycles]
+    assay_time = as.data.frame(assay_time)
+    colnames(assay_time) = c('Time')
+
+    return(assay_time)
+
+  } else {
+
+    assay_time = seq(from=start_time,  by = interval, along.with=seq(cycles))
+    assay_time = assay_time[1:cycles]
+    assay_time = as.data.frame(assay_time)
+    colnames(assay_time) = c('Time')
+
+    return(assay_time)
+
+  }
+
+}
+
+time_original = time_attribute(pause_duration = 0, interval =  33,cycles =  40)

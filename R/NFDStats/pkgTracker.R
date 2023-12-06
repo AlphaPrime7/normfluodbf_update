@@ -23,6 +23,9 @@
 #' }
 
 package_trackeR <- function(packages){
+  library(tibble)
+  library(dlstats)
+  library(ggplot2)
 
   dl <- dlstats::cran_stats(c(packages))
   dl_df <- as_tibble(dl)
@@ -41,5 +44,6 @@ package_trackeR <- function(packages){
 
   return(returns_list)
 }
+
 
 

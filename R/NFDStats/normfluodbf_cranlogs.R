@@ -16,7 +16,7 @@ nfd_totals
 
 #Plot
 nfd <- ggplot(nfd_totals, aes(nfd_totals$date, nfd_totals$count)) +
-  geom_line(colour = "red",size=1)
+  geom_line(colour = "red",linewidth=1)
 nfd + xlab("Time") + ylab("Nr. of downloads") +
   labs(title = paste0("Normfluodbf daily downloads ", Sys.Date()-1))
 
@@ -27,6 +27,6 @@ nfd_cumulative_append <- cbind(nfd_totals,cumulative)
 
 #Plot
 nfd2 <- ggplot(nfd_cumulative_append, aes(nfd_cumulative_append$date, nfd_cumulative_append$cumulative)) +
-  geom_line(colour = "blue",size=1)
+  geom_line(colour = "blue",linewidth=1)
 nfd2 + xlab("Time") + ylab("Nr. of downloads") +
   labs(title = paste0("Normfluodbf cumulative downloads until ", Sys.Date()-1))

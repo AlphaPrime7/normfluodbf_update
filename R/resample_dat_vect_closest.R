@@ -43,7 +43,6 @@ alt_test_scale <- resample_vect_scale(dat,test,3,40)
 testvec = as.vector(test)
 rapply(test[1:ncol(test)], resample_dat_alt_vect, tnp =3, cycles = 40, output = NULL)
 
-#Pseudovectorized approach-Hope for some speed gains here
 resample_vect_scale <- function(df, tnp, cycles, method = c('normal','brute')){
 
   #df <- df[,colSums(is.na(df))<nrow(df)]

@@ -43,7 +43,7 @@ alt_test_scale <- resample_vect_scale(dat,test,3,40)
 testvec = as.vector(test)
 rapply(test[1:ncol(test)], resample_dat_alt_vect, tnp =3, cycles = 40, output = NULL)
 
-resample_vect_scale <- function(df, tnp, cycles, method = c('normal','brute')){
+resample_vect_scale <- function(df, tnp, cycles, method = c('normal','brute','vector')){
 
   #df <- df[,colSums(is.na(df))<nrow(df)]
   df_vector = as.vector(df)
@@ -57,13 +57,14 @@ resample_vect_scale <- function(df, tnp, cycles, method = c('normal','brute')){
   total_list
 
   resulting_df = matrix()
+  resulting_vect = c(list())
   j_vect <- c()
   dfbs = data.frame() #yes bs= bullshit
 
   if( is.null(method) || 'normal' %in% method){
     for(j in df_vector){
       j = as.data.frame(j)
-      resampled_df = resample_dat_alt_vect(j,tnp=tnp,cycles = cycles)
+      resampled_df = resample_dat_vect(j,tnp=tnp,cycles = cycles)
       colnames(resampled_df) = 'NULL'
       resulting_df = cbind(resulting_df, resampled_df)
     }
@@ -73,25 +74,92 @@ resample_vect_scale <- function(df, tnp, cycles, method = c('normal','brute')){
     colnames(resulting_df) = c(1:ncol(resulting_df))
     return(resulting_df)
 
-  } else {
+  } else if ('brute' %in% method){
 
     for(k in df_vector){
       k = as.data.frame(k)
-      resampled_df = resample_dat_alt_vect(k,tnp=tnp,cycles = cycles)
+      resampled_df = resample_dat_vect(k,tnp=tnp,cycles = cycles)
       j_vect <- c(j_vect, resampled_df)
     }
     dfbs = do.call(rbind, j_vect)
     dfbs = as.data.frame(dfbs)
     dfbs = data.table::transpose(l = dfbs)
     return(dfbs)
+
+  } else if ('vector' %in% method){
+    for(l in df_vector){
+      l = as.data.frame(l)
+      resampled_df = resample_dat_vect(l,tnp=tnp,cycles = cycles, output = 'vect')
+      resulting_vect = append(resulting_vect, resampled_df)
+    }
+    return(resulting_vect)
+
   }
 
 }
 
-alt_test_scale <- resample_vect_scale(test,3,40, method = 'brute')
+alt_test_scale <- resample_vect_scale(test,3,40, method = 'vector')
 alt_test_scale <- resample_vect_scale(test,3,40, method = 'normal')
 alt_test_scale <- resample_vect_scale(test,1,40, method = 'normal')
+alt_test_scale <- resample_vect_scale(test,3,40, method = 'brute')
 alt_test_scale <- resample_vect_scale(test,1,40, method = 'brute')
 
+alt_test_scale_norm <- lapply(alt_test_scale, min_max_norm)
+
+resample_vect_scale_alt <- function(df, tnp, cycles, method = c('normal','brute','vector')){
+
+  #df <- df[,colSums(is.na(df))<nrow(df)]
+  df_vector = as.vector(df)
+
+  total_list = c()
+  for (i in (1:length(df_vector)) ){
+    vec_len = length(df_vector[[i]])
+    total_list = c(total_list, i)
+  }
+  vec_len
+  total_list
+
+  resulting_df = matrix()
+  resulting_vect = c(list())
+  j_vect <- c()
+  dfbs = data.frame() #yes bs= bullshit
+
+  if( is.null(method) || 'normal' %in% method){
+    for(j in df_vector){
+      j = as.data.frame(j)
+      resampled_df = resample_dat_vect(j,tnp=tnp,cycles = cycles)
+      colnames(resampled_df) = 'NULL'
+      resulting_df = cbind(resulting_df, resampled_df)
+    }
+
+    resulting_df = resulting_df[,-1]
+    resulting_df = as.data.frame(resulting_df)
+    colnames(resulting_df) = c(1:ncol(resulting_df))
+    return(resulting_df)
+
+  } else if ('brute' %in% method){
+
+    for(k in df_vector){
+      k = as.data.frame(k)
+      resampled_df = resample_dat_vect(k,tnp=tnp,cycles = cycles)
+      j_vect <- c(j_vect, resampled_df)
+    }
+    dfbs = do.call(rbind, j_vect)
+    dfbs = as.data.frame(dfbs)
+    dfbs = data.table::transpose(l = dfbs)
+    return(dfbs)
+
+  } else if ('vector' %in% method){
+      for(l in df_vector){
+        l = as.data.frame(l)
+        resampled_df = resample_dat_vect(l,tnp=tnp,cycles = cycles, output = 'vect')
+        resulting_vect = append(resulting_vect, resampled_df)
+      }
+      return(resulting_vect)
+  }
+
+}
+
+alt_test_scale <- resample_vect_scale_alt(test,3,40, method = 'vector')
 
 

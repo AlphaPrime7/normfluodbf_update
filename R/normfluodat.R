@@ -140,13 +140,16 @@ resample_dat_alt <- function(df, tnp, cycles){
 
 #vectorized approach
 
-resample_dat_alt_vect <- function(df, tnp, cycles, output=NULL){
+resample_dat_vect <- function(df, tnp, cycles, output=NULL){
 
   library(dplyr)
   df_vector = as.vector(df)
 
+  hoe = c()
+
   for (i in (1:length(df_vector)) ){
     list_len = i
+    hoe = c(hoe, i)
     vec_len = length(df_vector[[i]])
   }
   vec_len
@@ -168,7 +171,6 @@ resample_dat_alt_vect <- function(df, tnp, cycles, output=NULL){
 
     for (l in 1:length(resulting_vec)){
 
-      inc_tnp_by = tnp
       inc_kth_by = 1
 
       k = df_vector[[list_len]] %>% .[c(kth)]

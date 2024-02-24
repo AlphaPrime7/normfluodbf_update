@@ -1228,3 +1228,5 @@ yl <- c(0,1)
 yl_log <- c(-2,0)
 gg_plot_triplets(trial1_scale,x=xvar,y_list=yvars,xlim=xl,ylim=yl)
 gg_plot_triplets(trial1_scale,xlim=xl,ylim=yl)
+
+

@@ -2,6 +2,7 @@
 #and the fun part is tracking the package
 library(cranlogs)
 library(ggplot2)
+library(dplyr)
 
 #Last week's downloads
 cran_downloads(packages="normfluodbf", when="last-month") #last-week, last-month
@@ -10,7 +11,8 @@ cran_downloads(packages="normfluodbf", when="last-month") #last-week, last-month
 #overall downloads
 #How many overall downloads
 #helps me remember the day the package was officially published
-nfd_totals <- cran_downloads(packages="normfluodbf", from = "2023-08-25", to = Sys.Date()-1)
+cran_downloads0 <- failwith(NULL, cran_downloads, quiet = TRUE)
+nfd_totals <- cran_downloads0(packages="normfluodbf", from = "2023-08-25", to = Sys.Date()-1)
 sum(nfd_totals[,2]) #=1014
 nfd_totals
 
